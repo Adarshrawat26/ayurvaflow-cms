@@ -1,79 +1,64 @@
-import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import InfoArchitecture from './components/InfoArchitecture'
-import UserFlows from './components/UserFlows'
-import DatabaseSchema from './components/DatabaseSchema'
-import ERDiagram from './components/ERDiagram'
-import APIArchitecture from './components/APIArchitecture'
-import Dashboards from './components/Dashboards'
-import FolderStructure from './components/FolderStructure'
-import PRD from './components/PRD'
-import Roadmap from './components/Roadmap'
+import { useEffect } from 'react'
+import Login from './pages/Login'
+import Layout from './pages/Layout'
+import PatientPortal from './pages/PatientPortal'
+import { useAppDispatch, useAppSelector } from './store/hooks'
+import { logout } from './store/slices/authSlice'
+import { fetchBootstrap } from './store/thunks/bootstrap'
 
-const NAV = [
-  { id: 'ia', label: '1. Info Architecture' },
-  { id: 'flows', label: '2. User Flows' },
-  { id: 'schema', label: '3. DB Schema' },
-  { id: 'er', label: '4. ER Diagram' },
-  { id: 'api', label: '5. API Architecture' },
-  { id: 'dashboards', label: '6–10. Dashboards' },
-  { id: 'folders', label: '12. Folder Structure' },
-  { id: 'prd', label: '13. PRD' },
-  { id: 'roadmap', label: '14. Roadmap' },
-]
+export type { Page, Role, User } from './types/entities'
 
-export default function App() {
-  const [active, setActive] = useState('ia')
-
+function BootstrapError({ message, onRetry, onLogout }: { message: string; onRetry: () => void; onLogout: () => void }) {
   return (
-    <div className="min-h-screen bg-[#F7F5F0]" style={{ fontFamily: 'Georgia, serif' }}>
-      <header className="bg-[#1B4332] text-white px-6 py-4 shadow-xl">
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-[#D4A017] flex items-center justify-center font-bold text-[#1B4332] text-xl">आ</div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>AyurvaFlow CMS</h1>
-              <p className="text-xs text-[#A8D5B5] mt-0.5" style={{ fontFamily: 'sans-serif' }}>Multi-Tenant Ayurveda Clinic Management SaaS · Complete System Blueprint</p>
-            </div>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Badge className="bg-[#D4A017] text-[#1B4332] font-semibold" style={{ fontFamily: 'sans-serif' }}>Enterprise SaaS</Badge>
-            <Badge className="bg-[#2D6A4F] text-[#A8D5B5] border border-[#A8D5B5]" style={{ fontFamily: 'sans-serif' }}>100+ Centers</Badge>
-            <Badge className="bg-[#2D6A4F] text-[#A8D5B5] border border-[#A8D5B5]" style={{ fontFamily: 'sans-serif' }}>v1.0 PRD</Badge>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="card p-6 max-w-md w-full text-center">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Could not load clinic data</h2>
+        <p className="text-sm text-gray-500 mb-5">{message}</p>
+        <div className="flex flex-col gap-2">
+          <button onClick={onRetry} className="btn-primary w-full">Try again</button>
+          <button onClick={onLogout} className="w-full py-2.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg">
+            Sign out
+          </button>
         </div>
-      </header>
-
-      <nav className="bg-[#163828] border-b border-[#2D6A4F] sticky top-0 z-50 overflow-x-auto">
-        <div className="max-w-screen-xl mx-auto flex gap-1 px-4 py-1.5">
-          {NAV.map(n => (
-            <button
-              key={n.id}
-              onClick={() => setActive(n.id)}
-              style={{ fontFamily: 'sans-serif' }}
-              className={`px-3 py-1.5 text-xs whitespace-nowrap rounded transition-all font-medium ${
-                active === n.id
-                  ? 'bg-[#D4A017] text-[#1B4332]'
-                  : 'text-[#A8D5B5] hover:text-white hover:bg-[#1B4332]'
-              }`}
-            >
-              {n.label}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      <main className="max-w-screen-xl mx-auto px-4 py-8">
-        {active === 'ia' && <InfoArchitecture />}
-        {active === 'flows' && <UserFlows />}
-        {active === 'schema' && <DatabaseSchema />}
-        {active === 'er' && <ERDiagram />}
-        {active === 'api' && <APIArchitecture />}
-        {active === 'dashboards' && <Dashboards />}
-        {active === 'folders' && <FolderStructure />}
-        {active === 'prd' && <PRD />}
-        {active === 'roadmap' && <Roadmap />}
-      </main>
+      </div>
     </div>
   )
+}
+
+export default function App() {
+  const dispatch = useAppDispatch()
+  const { user, token, bootstrapping, error, dataLoaded } = useAppSelector(state => state.auth)
+
+  useEffect(() => {
+    if (token && user && user.role !== 'patient' && !dataLoaded && !bootstrapping) {
+      dispatch(fetchBootstrap())
+    }
+  }, [token, user, dataLoaded, bootstrapping, dispatch])
+
+  if (!token || !user) return <Login />
+
+  if (user.role === 'patient') {
+    return <PatientPortal user={user} token={token} onLogout={() => dispatch(logout())} />
+  }
+
+  if (bootstrapping) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50">
+        <div className="w-8 h-8 rounded-full border-2 border-[#1B4332] border-t-transparent animate-spin" />
+        <p className="text-sm text-gray-500">Loading clinic data…</p>
+      </div>
+    )
+  }
+
+  if (error && !dataLoaded) {
+    return (
+      <BootstrapError
+        message={error}
+        onRetry={() => dispatch(fetchBootstrap())}
+        onLogout={() => dispatch(logout())}
+      />
+    )
+  }
+
+  return <Layout user={user} onLogout={() => dispatch(logout())} />
 }

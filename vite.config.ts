@@ -9,4 +9,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // Dev API on 3010 — avoids conflict with `npm start` on 3001
+      "/api": "http://localhost:3010",
+    },
+  },
 });

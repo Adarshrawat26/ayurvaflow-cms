@@ -1,0 +1,332 @@
+// AyurvaFlow CMS — SQLite database schema
+// Multi-tenant Ayurveda clinic management
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Core ───────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id           String       @id @default(uuid())
+  name         String
+  subdomain    String       @unique
+  customDomain String?      @map("custom_domain")
+  plan         TenantPlan   @default(STARTER)
+  status       TenantStatus @default(ACTIVE)
+  settings     Json?
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  users         User[]
+  patients      Patient[]
+  appointments  Appointment[]
+  consultations Consultation[]
+  treatmentPlans TreatmentPlan[]
+  invoices      Invoice[]
+  registrations PatientRegistration[]
+  patientAccounts PatientAccount[]
+  patientDocuments PatientDocument[]
+
+  @@map("tenants")
+}
+
+enum TenantPlan {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+}
+
+model User {
+  id               String    @id @default(uuid())
+  tenantId         String    @map("tenant_id")
+  role             UserRole
+  email            String    @unique
+  phone            String?
+  passwordHash     String    @map("password_hash")
+  firstName        String    @map("first_name")
+  lastName         String    @map("last_name")
+  specialization   String?
+  experience       Int       @default(0)
+  isActive         Boolean   @default(true) @map("is_active")
+  lastLogin        DateTime? @map("last_login")
+  joinDate         DateTime  @default(now()) @map("join_date")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  tenant              Tenant         @relation(fields: [tenantId], references: [id])
+  doctorAppointments  Appointment[]  @relation("DoctorAppointments")
+  consultations       Consultation[] @relation("DoctorConsultations")
+  treatmentPlans      TreatmentPlan[] @relation("DoctorTreatmentPlans")
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  RECEPTIONIST
+  DOCTOR
+  THERAPIST
+}
+
+// ─── Patients ─────────────────────────────────────────────────────────────────
+
+model Patient {
+  id              String        @id @default(uuid())
+  tenantId        String        @map("tenant_id")
+  patientCode     String        @map("patient_code")
+  name            String
+  age             Int
+  gender          Gender
+  phone           String
+  email           String?
+  city            String?
+  occupation      String?
+  nationality     String?
+  referralSource  String?       @map("referral_source")
+  purpose         String?
+  prakriti        String?
+  status          PatientStatus @default(ACTIVE)
+  balance         Decimal       @default(0)
+  lastVisit       DateTime?     @map("last_visit")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  appointments  Appointment[]
+  consultations Consultation[]
+  treatmentPlans TreatmentPlan[]
+  invoices      Invoice[]
+  registration  PatientRegistration?
+  account       PatientAccount?
+  documents     PatientDocument[]
+
+  @@unique([tenantId, patientCode])
+  @@index([tenantId])
+  @@map("patients")
+}
+
+model PatientAccount {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  patientId    String    @unique @map("patient_id")
+  email        String
+  passwordHash String    @map("password_hash")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("patient_accounts")
+}
+
+model PatientDocument {
+  id         String       @id @default(uuid())
+  tenantId   String       @map("tenant_id")
+  patientId  String       @map("patient_id")
+  docType    DocumentType @map("doc_type")
+  fileName   String       @map("file_name")
+  mimeType   String       @map("mime_type")
+  fileSize   Int          @map("file_size")
+  fileData   String       @map("file_data")
+  uploadedBy String       @map("uploaded_by")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@map("patient_documents")
+}
+
+enum DocumentType {
+  AADHAAR
+  PAN
+  PRESCRIPTION
+  LAB_REPORT
+  MEDICAL_HISTORY
+  CONSENT
+  OTHER
+}
+
+enum Gender {
+  M
+  F
+  OTHER
+}
+
+enum PatientStatus {
+  ACTIVE
+  COMPLETED
+  INACTIVE
+}
+
+model PatientRegistration {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  patientId               String   @unique @map("patient_id")
+  regNumber               String   @map("reg_number")
+  formData                Json     @map("form_data")
+  patientSignature        String?  @map("patient_signature")
+  signerType              String   @default("patient") @map("signer_type")
+  kairaliRepSignature     String?  @map("kairali_rep_signature")
+  signedAt                DateTime @map("signed_at")
+  signedByUserId          String?  @map("signed_by_user_id")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([tenantId])
+  @@map("patient_registrations")
+}
+
+// ─── Scheduling ───────────────────────────────────────────────────────────────
+
+model Appointment {
+  id         String            @id @default(uuid())
+  tenantId   String            @map("tenant_id")
+  patientId  String            @map("patient_id")
+  doctorId   String?           @map("doctor_id")
+  doctorName String            @map("doctor_name")
+  date       DateTime
+  time       String
+  type       String
+  status     AppointmentStatus @default(SCHEDULED)
+  duration   Int               @default(45)
+  notes      String?
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  doctor        User?          @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  consultation  Consultation?
+
+  @@index([tenantId, date])
+  @@index([patientId])
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ─── Clinical ─────────────────────────────────────────────────────────────────
+
+model Consultation {
+  id                      String   @id @default(uuid())
+  tenantId                String   @map("tenant_id")
+  patientId               String   @map("patient_id")
+  doctorId                String?  @map("doctor_id")
+  appointmentId           String?  @unique @map("appointment_id")
+  complaints              String?
+  duration                String?
+  history                 String?
+  allergies               String?
+  pulse                   String?
+  tongue                  String?
+  eyes                    String?
+  skin                    String?
+  prakriti                String?
+  vikruti                 String?
+  condition               String?
+  therapy                 String?
+  sessions                Int?
+  medicines               String?
+  diet                    String?
+  lifestyle               String?
+  followUp                String?  @map("follow_up")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  patient     Patient      @relation(fields: [patientId], references: [id])
+  doctor      User?        @relation("DoctorConsultations", fields: [doctorId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@map("consultations")
+}
+
+// ─── Treatments ───────────────────────────────────────────────────────────────
+
+model TreatmentPlan {
+  id                String          @id @default(uuid())
+  tenantId          String          @map("tenant_id")
+  patientId         String          @map("patient_id")
+  doctorId          String?         @map("doctor_id")
+  consultationId    String?         @map("consultation_id")
+  type              String
+  condition         String
+  totalSessions     Int             @map("total_sessions")
+  completedSessions Int             @default(0) @map("completed_sessions")
+  startDate         DateTime        @map("start_date")
+  endDate           DateTime?       @map("end_date")
+  doctorName        String          @map("doctor_name")
+  status            TreatmentStatus @default(ACTIVE)
+  cost              Decimal         @default(0)
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+  doctor  User?   @relation("DoctorTreatmentPlans", fields: [doctorId], references: [id])
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@map("treatment_plans")
+}
+
+enum TreatmentStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ─── Billing ──────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id        String        @id @default(uuid())
+  tenantId  String        @map("tenant_id")
+  patientId String        @map("patient_id")
+  date      DateTime
+  items     Json
+  subtotal  Decimal
+  tax       Decimal
+  total     Decimal
+  paid      Decimal       @default(0)
+  status    InvoiceStatus @default(UNPAID)
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  PAID
+  PARTIAL
+  UNPAID
+}
