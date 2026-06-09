@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
   makeSelectPatientHistory,
   selectClinicSettings,
-  selectPatients,
+  selectPatientSearchResults,
   selectRegistrationByPatientId,
   selectUser,
 } from '../store/selectors'
@@ -25,7 +25,6 @@ import { fullNameFromForm, hearAboutLabel, purposeLabel } from '../types/registr
 
 export default function Patients(_props: { onNavigate: (p: Page) => void; user?: unknown }) {
   const dispatch = useAppDispatch()
-  const patients = useAppSelector(selectPatients)
   const clinic = useAppSelector(selectClinicSettings)
   const authUser = useAppSelector(selectUser)
   const token = useAppSelector(state => state.auth.token)
@@ -46,11 +45,7 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
     selected ? makeSelectPatientHistory(selected.id)(state) : null
   )
 
-  const filtered = patients.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone.includes(search) ||
-    p.id.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = useAppSelector(state => selectPatientSearchResults(search)(state))
 
   const statusColor: Record<string, string> = {
     active: 'bg-green-100 text-green-700',

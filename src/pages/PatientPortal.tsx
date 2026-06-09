@@ -16,6 +16,7 @@ import Logo from '../components/Logo'
 import PatientDocuments from '../components/PatientDocuments'
 import { api, ApiError } from '@/lib/api'
 import { formatShortDate } from '@/lib/dates'
+import { EmptyState, initials } from '@/lib/ui'
 import type { Appointment, Invoice, Treatment } from '@/types/entities'
 import type { PatientRegistrationRecord } from '@/types/registration'
 
@@ -45,40 +46,11 @@ const APPT_STATUS: Record<string, string> = {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  scheduled: 'bg-blue-50 text-blue-700 border-blue-100',
-  arrived: 'bg-amber-50 text-amber-700 border-amber-100',
-  in_progress: 'bg-purple-50 text-purple-700 border-purple-100',
-  completed: 'bg-green-50 text-green-700 border-green-100',
-  cancelled: 'bg-gray-100 text-gray-600 border-gray-200',
-  no_show: 'bg-red-50 text-red-700 border-red-100',
-  paid: 'bg-green-50 text-green-700 border-green-100',
-  partial: 'bg-amber-50 text-amber-700 border-amber-100',
-  unpaid: 'bg-red-50 text-red-700 border-red-100',
-  active: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-}
-
-function initials(name: string) {
-  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-}
-
-function EmptyState({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: React.ElementType
-  title: string
-  description: string
-}) {
-  return (
-    <div className="card p-10 text-center">
-      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-        <Icon size={22} className="text-gray-300" />
-      </div>
-      <p className="text-sm font-medium text-gray-700">{title}</p>
-      <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">{description}</p>
-    </div>
-  )
+  scheduled: 'bg-blue-50 text-blue-700 border-blue-100', arrived: 'bg-amber-50 text-amber-700 border-amber-100',
+  in_progress: 'bg-purple-50 text-purple-700 border-purple-100', completed: 'bg-green-50 text-green-700 border-green-100',
+  cancelled: 'bg-gray-100 text-gray-600 border-gray-200', no_show: 'bg-red-50 text-red-700 border-red-100',
+  paid: 'bg-green-50 text-green-700 border-green-100', partial: 'bg-amber-50 text-amber-700 border-amber-100',
+  unpaid: 'bg-red-50 text-red-700 border-red-100', active: 'bg-emerald-50 text-emerald-700 border-emerald-100',
 }
 
 export default function PatientPortal({ user, token, onLogout }: Props) {

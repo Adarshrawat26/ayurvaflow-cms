@@ -12,211 +12,18 @@ import {
   startOfWeek, toISODate,
 } from '../lib/dates'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { selectAppointments, selectPatients } from '../store/selectors'
+import { selectAppointments, selectClinicIndex } from '../store/selectors'
 import { createAppointmentApi, updateAppointmentApi } from '../store/thunks/apiThunks'
+import {
+  DAY_START, DURATION_BY_TYPE, formatTimeRange, HOUR_H, HOURS, NEXT_STATUS, STATUS_LABELS, STATUS_ORDER, STATUS_STYLE, TYPE_DOT,
+} from '@/lib/appointments'
+import { initials } from '@/lib/ui'
+import ApptCard from '../components/ApptCard'
 import ModalShell from '../components/ModalShell'
 import Swipeable from '../components/Swipeable'
 
 type DoctorLike = { id: string; name: string; specialization: string }
 type Appt = Appointment
-
-// ─── Config ──────────────────────────────────────────────────────────────────
-const HOUR_H    = 80        // px per hour
-const DAY_START = 8         // 08:00
-const DAY_END   = 19        // 19:00
-const HOURS     = Array.from({ length: DAY_END - DAY_START }, (_, i) => i + DAY_START)
-// ─── Colours ─────────────────────────────────────────────────────────────────
-const STATUS_STYLE: Record<string, { pill: string; card: string; cardBg: string; dot: string; bar: string }> = {
-  scheduled:   { pill: 'bg-blue-100 text-blue-700',       card: 'border-blue-300 text-blue-900',   cardBg: 'bg-blue-50',    dot: 'bg-blue-400',    bar: 'bg-blue-400' },
-  arrived:     { pill: 'bg-amber-100 text-amber-700',     card: 'border-amber-300 text-amber-900', cardBg: 'bg-amber-50',   dot: 'bg-amber-400',   bar: 'bg-amber-400' },
-  in_progress: { pill: 'bg-emerald-100 text-emerald-700', card: 'border-emerald-300 text-emerald-900', cardBg: 'bg-emerald-50', dot: 'bg-emerald-500', bar: 'bg-emerald-500' },
-  completed:   { pill: 'bg-gray-100 text-gray-500',       card: 'border-gray-200 text-gray-500',   cardBg: 'bg-gray-50',    dot: 'bg-gray-400',    bar: 'bg-gray-300' },
-  no_show:     { pill: 'bg-red-100 text-red-600',         card: 'border-red-200 text-red-700',     cardBg: 'bg-red-50',     dot: 'bg-red-400',     bar: 'bg-red-400' },
-  cancelled:   { pill: 'bg-gray-100 text-gray-500',       card: 'border-gray-300 text-gray-500',   cardBg: 'bg-gray-50',    dot: 'bg-gray-400',    bar: 'bg-gray-400' },
-}
-
-const TYPE_DOT: Record<string, string> = {
-  Consultation:  'bg-blue-500',
-  'Follow-up':   'bg-violet-500',
-  Abhyangam:     'bg-amber-500',
-  Shirodhara:    'bg-cyan-500',
-  Pizhichil:     'bg-teal-500',
-  Navarakizhi:   'bg-emerald-600',
-  Elakizhi:      'bg-green-500',
-  Udhwarthanam:  'bg-orange-500',
-  Kadikizhi:     'bg-yellow-500',
-  Nasyam:        'bg-purple-500',
-  Basti:         'bg-indigo-500',
-  Panchakarma:   'bg-[#1B4332]',
-  Rasayana:      'bg-lime-600',
-  'Veda Diet Program': 'bg-rose-500',
-}
-
-const STATUS_ORDER: Appointment['status'][] = ['scheduled', 'arrived', 'in_progress', 'completed', 'no_show']
-
-const STATUS_LABELS: Record<Appointment['status'], string> = {
-  scheduled: 'Scheduled',
-  arrived: 'Arrived',
-  in_progress: 'In progress',
-  completed: 'Completed',
-  no_show: 'No-show',
-  cancelled: 'Cancelled',
-}
-
-const NEXT_STATUS: Partial<Record<Appointment['status'], string>> = {
-  scheduled: 'Mark arrived',
-  arrived: 'Start session',
-  in_progress: 'Complete',
-}
-
-const DURATION_BY_TYPE: Record<string, number> = {
-  Consultation: 45,
-  'Follow-up': 45,
-  Panchakarma: 90,
-  Abhyangam: 60,
-  Shirodhara: 60,
-  Pizhichil: 90,
-  Navarakizhi: 60,
-  Elakizhi: 60,
-  Udhwarthanam: 60,
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function toMin(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return (h - DAY_START) * 60 + m
-}
-
-function initials(name: string) {
-  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-}
-
-function formatTimeRange(time: string, duration: number) {
-  const [h, m] = time.split(':').map(Number)
-  const endMin  = h * 60 + m + duration
-  const eh = Math.floor(endMin / 60)
-  const em = endMin % 60
-  return `${time} – ${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`
-}
-
-function hasConflict(
-  appts: Appt[],
-  date: string,
-  time: string,
-  duration: number,
-  doctor: string,
-  excludeId?: string,
-) {
-  const start = toMin(time)
-  const end = start + duration
-  return appts.some(a => {
-    if (a.date !== date || a.doctor !== doctor || a.status === 'no_show') return false
-    if (excludeId && a.id === excludeId) return false
-    const as = toMin(a.time)
-    const ae = as + a.duration
-    return start < ae && end > as
-  })
-}
-
-function getNextTodayAppt(appts: Appt[], today: string) {
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
-  return appts
-    .filter(a => a.date === today && a.status !== 'completed' && a.status !== 'no_show')
-    .sort((a, b) => a.time.localeCompare(b.time))
-    .find(a => {
-      const [h, m] = a.time.split(':').map(Number)
-      return h * 60 + m + a.duration > nowMin
-    })
-}
-
-// Compute column layout for overlapping events in one day
-function layoutDay(appts: Appt[]): (Appt & { col: number; cols: number })[] {
-  const sorted = [...appts].sort((a, b) => toMin(a.time) - toMin(b.time))
-  const result: (Appt & { col: number; cols: number })[] = []
-  const groups: Appt[][] = []
-
-  for (const appt of sorted) {
-    const start = toMin(appt.time)
-    const end   = start + appt.duration
-    let placed  = false
-    for (const g of groups) {
-      const overlaps = g.some(a => {
-        const as = toMin(a.time), ae = as + a.duration
-        return start < ae && end > as
-      })
-      if (overlaps) { g.push(appt); placed = true; break }
-    }
-    if (!placed) groups.push([appt])
-  }
-
-  for (const g of groups) {
-    // assign columns
-    const cols = g.length
-    g.forEach((a, i) => result.push({ ...a, col: i, cols }))
-  }
-  return result
-}
-
-// ─── Rich appointment card ────────────────────────────────────────────────────
-function ApptCard({ appt, ppm, col, cols, compact, onClick }: {
-  appt: Appt; ppm: number; col: number; cols: number; compact: boolean; onClick: (a: Appt) => void
-}) {
-  const top    = toMin(appt.time) * ppm
-  const height = Math.max(appt.duration * ppm, 32)
-  const s      = STATUS_STYLE[appt.status] ?? STATUS_STYLE.scheduled
-  const dot    = TYPE_DOT[appt.type] ?? 'bg-gray-400'
-
-  // horizontal position for overlaps
-  const colL   = `calc(${(col / cols) * 100}% + 2px)`
-  const colR   = `calc(${((cols - col - 1) / cols) * 100}% + 2px)`
-
-  return (
-    <button
-      onClick={e => { e.stopPropagation(); onClick(appt) }}
-      style={{ top, height, left: colL, right: colR, position: 'absolute' }}
-      className={`rounded-lg border ${s.card} ${s.cardBg} text-left overflow-hidden hover:brightness-95 active:scale-[0.98] transition-all z-10 flex flex-col`}
-    >
-      {/* status bar on left edge */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg ${s.bar}`} />
-
-      <div className="pl-2.5 pr-1.5 pt-1.5 pb-1 flex-1 min-h-0 flex flex-col justify-between">
-        {compact ? (
-          <div className="flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-            <span className="text-[9px] font-semibold leading-tight truncate">{appt.patient.split(' ')[0]}</span>
-          </div>
-        ) : (
-          <>
-            <div>
-              {/* patient row */}
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <div className={`w-4 h-4 rounded-full ${s.bar} flex items-center justify-center text-white text-[7px] font-bold shrink-0`}>
-                  {initials(appt.patient)}
-                </div>
-                <span className="text-[11px] font-semibold leading-tight truncate">{appt.patient}</span>
-              </div>
-              {/* type */}
-              {height >= 44 && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <div className={`w-1.5 h-1.5 rounded-full ${dot} shrink-0`} />
-                  <span className="text-[9px] opacity-75 truncate">{appt.type}</span>
-                </div>
-              )}
-              {/* doctor */}
-              {height >= 58 && (
-                <div className="text-[9px] opacity-60 truncate mt-0.5">{appt.doctor.replace('Dr. ', '')}</div>
-              )}
-            </div>
-            {/* time range */}
-            {height >= 52 && (
-              <div className="text-[8px] opacity-50 mt-1 font-medium">{formatTimeRange(appt.time, appt.duration)}</div>
-            )}
-          </>
-        )}
-      </div>
-    </button>
-  )
-}
 
 // ─── Time grid background ─────────────────────────────────────────────────────
 function TimeGrid({ onSlotClick }: { onSlotClick: (h: number) => void; date: string }) {
@@ -243,7 +50,7 @@ function TimeGrid({ onSlotClick }: { onSlotClick: (h: number) => void; date: str
 export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p: Page) => void; user?: unknown; doctors?: DoctorLike[] }) {
   const dispatch = useAppDispatch()
   const appts = useAppSelector(selectAppointments)
-  const patients = useAppSelector(selectPatients)
+  const clinicIndex = useAppSelector(selectClinicIndex)
   const doctorsList = doctorsProp ?? []
   const today = toISODate()
   const [weekStart, setWeekStart] = useState(() => startOfWeek(today))
@@ -270,38 +77,48 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
 
   const weekDateSet = useMemo(() => new Set(weekDates.map(d => d.date)), [weekDates])
 
-  const docFiltered = useMemo(
-    () => appts.filter(a => filterDoc === 'all' || a.doctor === filterDoc),
-    [appts, filterDoc],
-  )
-
   const weekFiltered = useMemo(
-    () => docFiltered.filter(a => weekDateSet.has(a.date)),
-    [docFiltered, weekDateSet],
+    () => clinicIndex.filterAppointments({ dates: weekDateSet, doctor: filterDoc }),
+    [clinicIndex, weekDateSet, filterDoc],
   )
 
   const filtered = useMemo(
-    () => statusFilter === 'all' ? weekFiltered : weekFiltered.filter(a => a.status === statusFilter),
-    [weekFiltered, statusFilter],
+    () => clinicIndex.filterAppointments({ dates: weekDateSet, doctor: filterDoc, status: statusFilter }),
+    [clinicIndex, weekDateSet, filterDoc, statusFilter],
   )
 
-  const filteredPatients = useMemo(() => {
-    const q = patientSearch.trim().toLowerCase()
-    if (!q) return patients
-    return patients.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.phone.includes(q) ||
-      p.id.toLowerCase().includes(q),
-    )
-  }, [patients, patientSearch])
+  const filteredPatients = useMemo(
+    () => clinicIndex.searchPatients(patientSearch),
+    [clinicIndex, patientSearch],
+  )
 
   const bookingConflict = useMemo(() => {
     if (!form.patient || !form.doctor || !form.date || !form.time) return null
-    if (!hasConflict(appts, form.date, form.time, Number(form.duration), form.doctor)) return null
+    if (!clinicIndex.hasAppointmentConflict(
+      form.date,
+      form.time,
+      Number(form.duration),
+      form.doctor,
+      undefined,
+      DAY_START,
+    )) return null
     return 'This doctor already has an appointment at this time'
-  }, [appts, form])
+  }, [clinicIndex, form])
 
-  const nextToday = useMemo(() => getNextTodayAppt(docFiltered, today), [docFiltered, today])
+  const nextToday = useMemo(() => {
+    const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+    return clinicIndex.getTodayAppointments()
+      .filter(a =>
+        (filterDoc === 'all' || a.doctor === filterDoc) &&
+        a.status !== 'completed' &&
+        a.status !== 'cancelled' &&
+        a.status !== 'no_show',
+      )
+      .find(a => {
+        const [h, m] = a.time.split(':').map(Number)
+        return h * 60 + m + a.duration > nowMin
+      })
+  }, [clinicIndex, filterDoc, today])
 
   const ppm       = HOUR_H / 60
   const nowTop    = selectedDay === today ? minutesFromDayStart(DAY_START) * ppm : -1
@@ -397,7 +214,7 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
 
   const book = async () => {
     if (!validateForm()) return
-    const patient = patients.find(p => p.id === form.patient)
+    const patient = clinicIndex.getPatient(form.patient)
     const newAppt: Appt = {
       id: `A${String(appts.length + 1).padStart(3, '0')}`,
       patientId: form.patient,
@@ -452,7 +269,7 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
   // ── day view ────────────────────────────────────────────────────────────────
   const renderDayView = () => {
     const dayAppts  = filtered.filter(a => a.date === selectedDay)
-    const laid      = layoutDay(dayAppts)
+    const laid      = clinicIndex.layoutDayAppointments(dayAppts, DAY_START)
     const isToday   = selectedDay === today
 
     return (
@@ -582,7 +399,7 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
           {/* day columns */}
           {weekDates.map(d => {
             const dayAppts = filtered.filter(a => a.date === d.date)
-            const laid     = layoutDay(dayAppts)
+            const laid     = clinicIndex.layoutDayAppointments(dayAppts, DAY_START)
             const isToday  = d.date === today
             return (
               <div key={d.date} className={`flex-1 relative border-l border-gray-100 ${isToday ? 'bg-[#1B4332]/[0.015]' : ''}`}>
@@ -693,7 +510,7 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
                 {week.map((day, di) => {
                   if (!day) return <div key={di} />
                   const dateStr = toISODate(new Date(calYear, calMonth, day))
-                  const hasAppts = appts.some(a => a.date === dateStr)
+                  const hasAppts = clinicIndex.appointmentDates.has(dateStr)
                   const isToday  = dateStr === today
                   const isSel    = dateStr === selectedDay
                   return (

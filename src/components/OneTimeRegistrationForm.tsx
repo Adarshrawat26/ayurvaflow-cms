@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, ChevronLeft, ChevronRight, FileText, Check, Download, HelpCircle } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Check, Download, HelpCircle } from 'lucide-react'
 import type { ClinicSettings } from '@/types/clinic'
 import type { PatientRegistrationRecord, RegistrationForm } from '@/types/registration'
 import {
@@ -8,10 +8,12 @@ import {
   fullNameFromForm,
   purposeLabel,
 } from '@/types/registration'
-import { CONSENT_CLAUSES, CONSENT_PREAMBLE, COMPANY_REGISTERED_ADDRESS, NABH_SEAL_TEXT } from '@/data/consentClauses'
+import { NABH_SEAL_TEXT } from '@/data/consentClauses'
 import SignaturePad from './SignaturePad'
 import RegistrationGuideModal from './RegistrationGuideModal'
+import { ConsentStep } from './registration/ConsentBlock'
 import { printRegistration } from '@/lib/registrationPrint'
+import { CheckRow, Field } from '@/lib/ui'
 
 const STEPS = ['Registration', 'Consent (1)', 'Consent (2)', 'Review & Sign']
 
@@ -24,23 +26,6 @@ interface Props {
   officeMode?: boolean
   initial?: RegistrationForm
   regNumber?: string
-}
-
-function CheckRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
-  return (
-    <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
-      <input type="checkbox" className="mt-1 accent-[#1B4332]" checked={checked} onChange={e => onChange(e.target.checked)} />
-      <span>{label}</span>
-    </label>
-  )
 }
 
 export default function OneTimeRegistrationForm({
@@ -333,76 +318,28 @@ export default function OneTimeRegistrationForm({
             </>
           )}
 
-          {step === 1 && (
-            <div className="card p-4 space-y-4">
-              <div className="flex items-center gap-2 text-[#1B4332]">
-                <FileText size={16} />
-                <h3 className="text-sm font-semibold">General Consent for Treatment / Therapy (Part 1)</h3>
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed text-justify">
-                {CONSENT_PREAMBLE(clinic.address, COMPANY_REGISTERED_ADDRESS, clinic.phone, clinic.email)}
-              </p>
-              {CONSENT_CLAUSES.slice(0, 4).map(c => (
-                <div key={c.id} className="border-t border-gray-100 pt-3">
-                  <h4 className="text-xs font-semibold text-gray-800 mb-1">Clause {c.id}: {c.title}</h4>
-                  <p className="text-[11px] text-gray-600 leading-relaxed text-justify">{c.text}</p>
-                  <CheckRow
-                    label={`I have read and understood Clause ${c.id}`}
-                    checked={form.clauseAcknowledgements[c.id - 1]}
-                    onChange={v => {
-                      const clauseAcknowledgements = [...form.clauseAcknowledgements]
-                      clauseAcknowledgements[c.id - 1] = v
-                      patch({ clauseAcknowledgements })
-                    }}
-                  />
-                </div>
-              ))}
-              <CheckRow
-                label="I acknowledge and consent to all terms in Part 1"
-                checked={form.consentPart1Accepted}
-                onChange={v => patch({ consentPart1Accepted: v })}
-              />
-              {errors.consent1 && <p className="text-xs text-red-500">{errors.consent1}</p>}
-            </div>
-          )}
+          {step === 1 && <ConsentStep part={1} form={form} patch={patch} errors={errors} clinic={clinic} />}
 
           {step === 2 && (
             <div className="space-y-4">
-              <div className="card p-4 space-y-4">
-                <h3 className="text-sm font-semibold text-gray-900">General Consent (Part 2)</h3>
-                {CONSENT_CLAUSES.slice(4).map(c => (
-                  <div key={c.id} className="border-t border-gray-100 pt-3">
-                    <h4 className="text-xs font-semibold text-gray-800 mb-1">Clause {c.id}: {c.title}</h4>
-                    <p className="text-[11px] text-gray-600 leading-relaxed text-justify">{c.text}</p>
-                    <CheckRow
-                      label={`I have read and understood Clause ${c.id}`}
-                      checked={form.clauseAcknowledgements[c.id - 1]}
-                      onChange={v => {
-                        const clauseAcknowledgements = [...form.clauseAcknowledgements]
-                        clauseAcknowledgements[c.id - 1] = v
-                        patch({ clauseAcknowledgements })
-                      }}
-                    />
-                  </div>
-                ))}
-                <CheckRow label="I acknowledge and consent to all terms in Part 2" checked={form.consentPart2Accepted} onChange={v => patch({ consentPart2Accepted: v })} />
-                {errors.consent2 && <p className="text-xs text-red-500">{errors.consent2}</p>}
-                {errors.clauses && <p className="text-xs text-red-500">{errors.clauses}</p>}
-              </div>
-
+              <ConsentStep part={2} form={form} patch={patch} errors={errors} clinic={clinic} />
               <div className="card p-4 space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-800">Patient Disclosures</h3>
-                <div><label className="label">Previous Ayurveda Treatments</label><textarea className="input-field resize-none" rows={2} value={form.previousAyurvedaTreatments} onChange={e => patch({ previousAyurvedaTreatments: e.target.value })} /></div>
-                <div><label className="label">Known Allergies / Reactions</label><textarea className="input-field resize-none" rows={2} value={form.knownAllergies} onChange={e => patch({ knownAllergies: e.target.value })} /></div>
-                <div><label className="label">Allopathic Medications (with prescription)</label><textarea className="input-field resize-none" rows={2} value={form.allopathicMedications} onChange={e => patch({ allopathicMedications: e.target.value })} /></div>
-                <div><label className="label">Lifestyle Diseases / Medical History</label><textarea className="input-field resize-none" rows={2} value={form.lifestyleDiseases} onChange={e => patch({ lifestyleDiseases: e.target.value })} /></div>
+                {([
+                  ['Previous Ayurveda Treatments', 'previousAyurvedaTreatments'],
+                  ['Known Allergies / Reactions', 'knownAllergies'],
+                  ['Allopathic Medications (with prescription)', 'allopathicMedications'],
+                  ['Lifestyle Diseases / Medical History', 'lifestyleDiseases'],
+                ] as const).map(([label, key]) => (
+                  <Field key={key} label={label} rows={2} value={form[key]}
+                    onChange={v => patch({ [key]: v })} />
+                ))}
               </div>
-
               <div className="card p-4 space-y-4">
                 <SignaturePad label="Patient / Responsible Person Signature *" value={form.patientSignature} onChange={v => patch({ patientSignature: v })} />
                 {errors.patientSignature && <p className="text-xs text-red-500">{errors.patientSignature}</p>}
                 <SignaturePad label="Kairali Representative Signature (optional)" value={form.kairaliRepSignature} onChange={v => patch({ kairaliRepSignature: v })} />
-                <div><label className="label">Representative Comments</label><input className="input-field" value={form.kairaliRepComments} onChange={e => patch({ kairaliRepComments: e.target.value })} /></div>
+                <Field label="Representative Comments" value={form.kairaliRepComments} onChange={v => patch({ kairaliRepComments: v })} />
               </div>
             </div>
           )}

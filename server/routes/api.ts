@@ -26,6 +26,7 @@ import {
   referralFromForm,
   validateRegistrationForm,
 } from '../lib/registration.js'
+import { hasSameDayConflict } from '../lib/intervals.js'
 
 const router = Router()
 
@@ -671,6 +672,23 @@ router.post('/appointments', requireAuth, requireStaff, async (req, res) => {
     return
   }
 
+  const day = new Date(body.date)
+  const nextDay = new Date(day)
+  nextDay.setDate(nextDay.getDate() + 1)
+  const sameDay = await prisma.appointment.findMany({
+    where: {
+      tenantId,
+      doctorName: body.doctor,
+      date: { gte: day, lt: nextDay },
+      status: { notIn: ['NO_SHOW', 'CANCELLED'] },
+    },
+    select: { id: true, time: true, duration: true },
+  })
+  if (hasSameDayConflict(sameDay, body.time, Number(body.duration) || 45)) {
+    res.status(409).json({ error: 'This doctor already has an appointment at this time' })
+    return
+  }
+
   const count = await prisma.appointment.count({ where: { tenantId } })
   const appt = await prisma.appointment.create({
     data: {
@@ -711,6 +729,28 @@ router.patch('/appointments/:id', requireAuth, requireStaff, async (req, res) =>
   }
 
   const body = req.body
+  const nextDate = body.date ? new Date(body.date) : appt.date
+  const nextDoctor = body.doctor ?? appt.doctorName
+  const nextTime = body.time ?? appt.time
+  const nextDuration = body.duration != null ? Number(body.duration) : appt.duration
+
+  const nextDay = new Date(nextDate)
+  nextDay.setDate(nextDay.getDate() + 1)
+  const sameDay = await prisma.appointment.findMany({
+    where: {
+      tenantId: req.auth!.tenantId,
+      doctorName: nextDoctor,
+      date: { gte: nextDate, lt: nextDay },
+      status: { notIn: ['NO_SHOW', 'CANCELLED'] },
+      NOT: { id: appt.id },
+    },
+    select: { id: true, time: true, duration: true },
+  })
+  if (hasSameDayConflict(sameDay, nextTime, nextDuration, appt.id)) {
+    res.status(409).json({ error: 'This doctor already has an appointment at this time' })
+    return
+  }
+
   const updated = await prisma.appointment.update({
     where: { id: appt.id },
     data: {

@@ -7,7 +7,7 @@ import {
 import type { User } from '../App'
 import type { StaffMember, StaffRole } from '../types/entities'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { selectClinicSettings, selectStaff } from '../store/selectors'
+import { selectClinicSettings, selectStaff, selectStaffSearchResults } from '../store/selectors'
 import { changePasswordApi, saveClinicSettingsApi, saveStaffApi } from '../store/thunks/apiThunks'
 import type { ClinicSettings } from '../types/clinic'
 
@@ -74,13 +74,10 @@ export default function Settings({ user }: Props) {
 
   const isAdmin = user.role === 'admin'
 
-  const filtered = staff.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.email.toLowerCase().includes(search.toLowerCase()) ||
-      s.specialization.toLowerCase().includes(search.toLowerCase())
-    const matchesRole = filterRole === 'all' || s.role === filterRole
-    return matchesSearch && matchesRole
-  })
+  const searchHits = useAppSelector(state => selectStaffSearchResults(search)(state))
+  const filtered = (search.trim() ? searchHits : staff).filter(s =>
+    filterRole === 'all' || s.role === filterRole,
+  )
 
   function openAdd() {
     setEditId(null)

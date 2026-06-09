@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit'
 import type { RootState } from './index'
-import { toISODate } from '@/lib/dates'
+import { ClinicDataIndex } from '@/lib/clinicIndex'
 
 export const selectAuth = (state: RootState) => state.auth ?? { user: null }
 export const selectUser = (state: RootState) => state.auth?.user ?? null
@@ -13,90 +13,53 @@ export const selectConsultations = (state: RootState) => state.consultations ?? 
 export const selectClinicSettings = (state: RootState) => state.settings
 export const selectRegistrations = (state: RootState) => state.registrations ?? []
 
+export const selectClinicIndex = createSelector(
+  selectPatients,
+  selectAppointments,
+  selectTreatments,
+  selectInvoices,
+  selectConsultations,
+  selectRegistrations,
+  selectStaff,
+  (patients, appointments, treatments, invoices, consultations, registrations, staff) =>
+    ClinicDataIndex.build({ patients, appointments, treatments, invoices, consultations, registrations, staff }),
+)
+
 export const selectRegistrationByPatientId = (patientId: string) =>
-  createSelector(selectRegistrations, regs => regs.find(r => r.patientId === patientId))
+  createSelector(selectClinicIndex, i => i.getRegistration(patientId))
 
 export const selectActiveDoctors = createSelector(selectStaff, staff =>
   staff
     .filter(s => s.role === 'doctor' && s.status === 'active')
-    .map(s => ({
-      id: s.id,
-      name: s.name,
-      specialization: s.specialization,
-      experience: s.experience,
-      patients: 0,
-      rating: 4.8,
-    }))
+    .map(s => ({ id: s.id, name: s.name, specialization: s.specialization, experience: s.experience, patients: 0, rating: 4.8 })),
 )
 
-export const selectTodayAppointments = createSelector(selectAppointments, appts => {
-  const today = toISODate()
-  return appts.filter(a => a.date === today).sort((a, b) => a.time.localeCompare(b.time))
+export const selectTodayAppointments = createSelector(selectClinicIndex, i => i.getTodayAppointments())
+export const selectConsultationQueue = createSelector(selectClinicIndex, i => i.getConsultationQueue())
+
+export const selectDoctorsWithLoad = createSelector(selectActiveDoctors, selectClinicIndex, (doctors, index) => {
+  const mk = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  const loads = index.getDoctorMonthlyPatientCounts(doctors, mk)
+  return doctors.map(d => ({ ...d, patients: loads.get(d.name) ?? 0 }))
 })
 
-export const selectConsultationQueue = createSelector(selectAppointments, appts => {
-  const today = toISODate()
-  return appts.filter(a =>
-    a.date === today &&
-    a.status !== 'completed' &&
-    a.status !== 'cancelled' &&
-    a.status !== 'no_show'
-  )
-})
-
-export const selectDoctorsWithLoad = createSelector(selectActiveDoctors, selectAppointments, (doctors, appts) => {
-  const now = new Date()
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  return doctors.map(d => ({
-    ...d,
-    patients: new Set(
-      appts
-        .filter(a => a.doctor === d.name && a.date.startsWith(monthKey))
-        .map(a => a.patientId)
-    ).size,
-  }))
-})
-
-export const selectConsultationByAppointmentId = (appointmentId: string) =>
-  createSelector(selectConsultations, consults =>
-    consults.find(c => c.appointmentId === appointmentId)
-  )
+export const selectConsultationByAppointmentId = (id: string) =>
+  createSelector(selectClinicIndex, i => i.getConsultationForAppointment(id))
 
 export const makeSelectPatientHistory = (patientId: string) =>
-  createSelector(
-    selectAppointments,
-    selectConsultations,
-    selectTreatments,
-    selectInvoices,
-    (appts, consults, treatments, invoices) => ({
-      appointments: appts
-        .filter(a => a.patientId === patientId)
-        .sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`)),
-      consultations: consults
-        .filter(c => c.patientId === patientId)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-      treatments: treatments
-        .filter(t => t.patientId === patientId)
-        .sort((a, b) => b.startDate.localeCompare(a.startDate)),
-      invoices: invoices
-        .filter(i => i.patientId === patientId)
-        .sort((a, b) => b.date.localeCompare(a.date)),
-    })
-  )
+  createSelector(selectClinicIndex, i => i.getPatientHistory(patientId))
 
-export const selectActiveTreatments = createSelector(selectTreatments, t =>
-  t.filter(x => x.status === 'active')
-)
+export const selectActiveTreatments = createSelector(selectTreatments, t => t.filter(x => x.status === 'active'))
+export const selectOutstandingInvoices = createSelector(selectInvoices, invs => invs.filter(i => i.status !== 'paid'))
 
-export const selectOutstandingInvoices = createSelector(selectInvoices, invs =>
-  invs.filter(i => i.status !== 'paid')
-)
+export const selectBillingSummary = createSelector(selectInvoices, invoices => ({
+  totalRevenue: invoices.reduce((a, i) => a + i.paid, 0),
+  totalOutstanding: invoices.reduce((a, i) => a + (i.total - i.paid), 0),
+  count: invoices.length,
+}))
 
-export const selectBillingSummary = createSelector(selectInvoices, invoices => {
-  const totalRevenue = invoices.reduce((a, i) => a + i.paid, 0)
-  const totalOutstanding = invoices.reduce((a, i) => a + (i.total - i.paid), 0)
-  return { totalRevenue, totalOutstanding, count: invoices.length }
-})
-
-export const selectPatientById = (id: string) =>
-  createSelector(selectPatients, patients => patients.find(p => p.id === id))
+export const selectPatientById = (id: string) => createSelector(selectClinicIndex, i => i.getPatient(id))
+export const selectPatientSearchResults = (query: string) =>
+  createSelector(selectClinicIndex, i => i.searchPatients(query))
+export const selectStaffSearchResults = (query: string) =>
+  createSelector(selectClinicIndex, i => i.searchStaff(query))

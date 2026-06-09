@@ -9,7 +9,9 @@ lerna-debug.log*
 
 node_modules
 dist
-data/
+/data/
+prisma/data/
+*.db
 .env
 dist-ssr
 *.local

@@ -7,7 +7,7 @@ import type { Treatment } from '../types/entities'
 import { TREATMENT_PACKAGES, type TreatmentPackage } from '../data/packages'
 import { addDays, formatShortDate, toISODate } from '../lib/dates'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { selectActiveDoctors, selectPatients, selectTreatments } from '../store/selectors'
+import { selectActiveDoctors, selectClinicIndex, selectTreatments } from '../store/selectors'
 import { createTreatmentApi, updateTreatmentApi } from '../store/thunks/apiThunks'
 
 type ViewMode = 'treatments' | 'packages'
@@ -24,7 +24,7 @@ const emptyAssignForm = (pkg: TreatmentPackage) => ({
 export default function Treatments(_props: { onNavigate: (p: Page) => void; user?: unknown }) {
   const dispatch = useAppDispatch()
   const treatments = useAppSelector(selectTreatments)
-  const patients = useAppSelector(selectPatients)
+  const clinicIndex = useAppSelector(selectClinicIndex)
   const doctors = useAppSelector(selectActiveDoctors)
 
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
@@ -39,15 +39,10 @@ export default function Treatments(_props: { onNavigate: (p: Page) => void; user
 
   const filtered = filter === 'all' ? treatments : treatments.filter(t => t.status === filter)
 
-  const filteredPatients = useMemo(() => {
-    const q = patientSearch.trim().toLowerCase()
-    if (!q) return patients
-    return patients.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.phone.includes(q) ||
-      p.purpose.toLowerCase().includes(q),
-    )
-  }, [patients, patientSearch])
+  const filteredPatients = useMemo(
+    () => clinicIndex.searchPatients(patientSearch),
+    [clinicIndex, patientSearch],
+  )
 
   const openAssign = (pkg: TreatmentPackage) => {
     setAssignPkg(pkg)
@@ -356,7 +351,7 @@ export default function Treatments(_props: { onNavigate: (p: Page) => void; user
                   className={`input-field ${formErrors.patientId ? 'border-red-400' : ''}`}
                   value={assignForm.patientId}
                   onChange={e => {
-                    const patient = patients.find(p => p.id === e.target.value)
+                    const patient = clinicIndex.getPatient(e.target.value)
                     setAssignForm(f => ({
                       ...f,
                       patientId: e.target.value,
