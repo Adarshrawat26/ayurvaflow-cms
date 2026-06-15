@@ -40,8 +40,10 @@ app.get('/api/health', async (_req, res) => {
         ? { status: 'ok', db: 'connected' }
         : { status: 'ok', env: process.env.NODE_ENV ?? 'development', db: 'connected' },
     )
-  } catch {
-    res.status(503).json(
+  } catch (err) {
+    console.error('Health check DB error:', err)
+    // Always 200 so Railway liveness passes; db field shows readiness
+    res.json(
       isProd
         ? { status: 'degraded', db: 'disconnected' }
         : { status: 'degraded', env: process.env.NODE_ENV ?? 'development', db: 'disconnected' },
@@ -76,8 +78,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' })
 })
 
-const server = app.listen(PORT, () => {
-  console.log(`🌿 AyurvaFlow API running on http://localhost:${PORT}`)
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌿 AyurvaFlow API running on http://0.0.0.0:${PORT}`)
   if (isProd) console.log('   Serving frontend from /dist')
 })
 

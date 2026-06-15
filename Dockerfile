@@ -18,7 +18,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
 
-RUN addgroup -S ayurva && adduser -S ayurva -G ayurva
+RUN apk add --no-cache su-exec \
+  && addgroup -S ayurva && adduser -S ayurva -G ayurva
 
 # Reuse pruned node_modules from builder — no second npm ci (avoids OOM + prisma postinstall race)
 COPY --from=builder /app/package*.json ./
@@ -32,7 +33,7 @@ RUN chmod +x ./scripts/docker-entrypoint.sh \
   && mkdir -p prisma/data \
   && chown -R ayurva:ayurva /app
 
-USER ayurva
+# Entrypoint fixes volume permissions then drops to ayurva via su-exec
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
