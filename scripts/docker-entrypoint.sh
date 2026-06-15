@@ -31,10 +31,18 @@ mkdir -p /app/prisma/data
 echo "Running database migrations..."
 if ! npx prisma migrate deploy 2>&1; then
   echo "migrate deploy failed — falling back to db push..."
-  if ! npx prisma db push 2>&1; then
-    echo "FATAL: Could not initialize database schema."
-    exit 1
-  fi
+  npx prisma db push 2>&1 || { echo "FATAL: Could not initialize database schema."; exit 1; }
+fi
+
+# Fresh volume: incremental migrations alone may not create base tables (users, patients, …)
+if ! node --input-type=module -e "
+  import { PrismaClient } from '@prisma/client';
+  const p = new PrismaClient();
+  try { await p.user.count(); process.exit(0); } catch { process.exit(1); }
+  finally { await p.\$disconnect(); }
+"; then
+  echo "Base schema missing after migrate — running prisma db push..."
+  npx prisma db push 2>&1 || { echo "FATAL: Could not push database schema."; exit 1; }
 fi
 
 echo "Checking database..."

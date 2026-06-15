@@ -8,6 +8,7 @@ import apiRouter from './routes/api.js'
 import portalRouter from './routes/portal.js'
 import { prisma } from './lib/prisma.js'
 import { isProduction, validateEnv } from './lib/env.js'
+import { bootstrapDatabase } from './lib/bootstrapDb.js'
 
 validateEnv()
 
@@ -42,18 +43,24 @@ app.get('/api/live', (_req, res) => {
 app.get('/api/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`
+    let users = 0
+    try {
+      users = await prisma.user.count()
+    } catch {
+      res.json(isProd ? { status: 'degraded', db: 'connected', ready: false } : { status: 'degraded', env: process.env.NODE_ENV ?? 'development', db: 'connected', ready: false })
+      return
+    }
     res.json(
       isProd
-        ? { status: 'ok', db: 'connected' }
-        : { status: 'ok', env: process.env.NODE_ENV ?? 'development', db: 'connected' },
+        ? { status: 'ok', db: 'connected', ready: users > 0, users }
+        : { status: 'ok', env: process.env.NODE_ENV ?? 'development', db: 'connected', ready: users > 0, users },
     )
   } catch (err) {
     console.error('Health check DB error:', err)
-    // Always 200 so Railway liveness passes; db field shows readiness
     res.json(
       isProd
-        ? { status: 'degraded', db: 'disconnected' }
-        : { status: 'degraded', env: process.env.NODE_ENV ?? 'development', db: 'disconnected' },
+        ? { status: 'degraded', db: 'disconnected', ready: false }
+        : { status: 'degraded', env: process.env.NODE_ENV ?? 'development', db: 'disconnected', ready: false },
     )
   }
 })
@@ -85,10 +92,20 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' })
 })
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🌿 AyurvaFlow API running on http://0.0.0.0:${PORT}`)
-  if (isProd) console.log('   Serving frontend from /dist')
-})
+async function start() {
+  try {
+    await bootstrapDatabase()
+  } catch (err) {
+    console.error('[db] Bootstrap failed:', err)
+  }
+
+  return app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌿 AyurvaFlow API running on http://0.0.0.0:${PORT}`)
+    if (isProd) console.log('   Serving frontend from /dist')
+  })
+}
+
+const server = await start()
 
 function shutdown(signal: string) {
   console.log(`\n${signal} received — shutting down`)
