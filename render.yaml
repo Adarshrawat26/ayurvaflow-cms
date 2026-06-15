@@ -1,0 +1,29 @@
+# Render Blueprint — Kairali CMS (Docker + SQLite persistent disk)
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Dashboard setup (if not using Blueprint):
+#   Runtime: Docker
+#   Health check path: /api/live
+#   Disk mount: /app/prisma/data (min 1 GB)
+#   Env: JWT_SECRET (32+ chars), DATABASE_URL, NODE_ENV, TRUST_PROXY
+
+services:
+  - type: web
+    name: ayurvaflow-cms
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/live
+    plan: starter
+    disk:
+      name: ayurvaflow-data
+      mountPath: /app/prisma/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./data/ayurvaflow.db
+      - key: TRUST_PROXY
+        value: "1"
+      - key: JWT_SECRET
+        generateValue: true

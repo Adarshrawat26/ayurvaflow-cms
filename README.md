@@ -139,6 +139,26 @@ Liveness probe: `GET /api/live` (instant). Full check: `GET /api/health` (includ
 
 **Client login (demo):** `admin@ayurvaflow.com` / `Kairali123!` — change passwords before real use.
 
+### Option E: Render (Docker + persistent disk)
+
+1. [render.com](https://render.com) → **New** → **Blueprint** → connect `adarshbluparrot/ayurvaflow-cms` (uses `render.yaml`).
+2. Or manually: **New Web Service** → Docker → same repo.
+3. **Settings:**
+   - Health check path: `/api/live`
+   - Disk: mount `/app/prisma/data` (1 GB+)
+4. **Environment** (if not using Blueprint):
+
+   | Variable | Value |
+   |----------|--------|
+   | `NODE_ENV` | `production` |
+   | `JWT_SECRET` | `openssl rand -base64 48` |
+   | `DATABASE_URL` | `file:./data/ayurvaflow.db` |
+   | `TRUST_PROXY` | `1` |
+
+5. First deploy auto-seeds demo data if the database is empty.
+
+**Note:** Render disables zero-downtime deploys when a disk is attached (expected for SQLite).
+
 ### Option C: Manual
 
 ```bash
