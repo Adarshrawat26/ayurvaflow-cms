@@ -1,10 +1,16 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
+
+# Lower memory use on Railway builders (exit 137 = OOM)
+ENV NODE_OPTIONS=--max-old-space-size=2048
+
+COPY package*.json .npmrc ./
 COPY prisma ./prisma
 RUN npm ci --ignore-scripts
+
 COPY . .
 RUN npx prisma generate && npm run build
+RUN npm prune --omit=dev
 
 FROM node:22-alpine
 WORKDIR /app
@@ -14,14 +20,13 @@ ENV PORT=3001
 
 RUN addgroup -S ayurva && adduser -S ayurva -G ayurva
 
-COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
+# Reuse pruned node_modules from builder — no second npm ci (avoids OOM + prisma postinstall race)
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 RUN chmod +x ./scripts/docker-entrypoint.sh \
   && mkdir -p prisma/data \
