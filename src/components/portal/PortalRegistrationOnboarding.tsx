@@ -25,8 +25,10 @@ export default function PortalRegistrationOnboarding({
   return (
     <div className="space-y-4">
       <div className="text-center sm:text-left mb-2">
-        <h2 className="text-lg font-semibold text-gray-900">Hi {firstName}</h2>
-        <p className="text-sm text-gray-500 mt-1">Complete registration at {clinic} to book online</p>
+        <h2 className="text-lg font-semibold text-gray-900">One-Time Registration</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Hi {firstName} — complete your registration at {clinic} to book online
+        </p>
       </div>
 
       <div className="card p-4">
@@ -111,7 +113,7 @@ export default function PortalRegistrationOnboarding({
           </a>
         )}
         <p className="text-[10px] text-gray-400 pt-1 border-t border-gray-100">
-          After registration you&apos;ll see your registration number on Overview and can book follow-ups from this tab.
+          After registration you&apos;ll see your registration number here and can book follow-ups from My calendar.
         </p>
       </div>
     </div>

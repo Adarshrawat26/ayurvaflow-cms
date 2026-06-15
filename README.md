@@ -129,6 +129,14 @@ Open http://localhost:3001
 5. **Networking** → **Generate domain** → copy the `*.up.railway.app` URL for your client.
 6. First deploy auto-seeds demo data if the database is empty.
 
+**Healthcheck failed?** In Railway → **Deployments** → **View logs**, look for `FATAL:` lines at boot. Almost always:
+
+- `JWT_SECRET` missing or shorter than 32 characters
+- `DATABASE_URL` not set to `file:./data/ayurvaflow.db`
+- Volume not mounted at `/app/prisma/data`
+
+Liveness probe: `GET /api/live` (instant). Full check: `GET /api/health` (includes DB).
+
 **Client login (demo):** `admin@ayurvaflow.com` / `Kairali123!` — change passwords before real use.
 
 ### Option C: Manual

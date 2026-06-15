@@ -71,7 +71,7 @@ export const GUIDE_FLOWS: Record<GuideRole, { intro?: string; flows: Flow[] }> =
     flows: [{
       title: 'Patient portal', icon: CircleUser,
       steps: [
-        'New patient: Login → Get started tab for step-by-step registration at the centre.',
+        'New patient: Login → One-Time Registration tab for step-by-step registration at the centre.',
         'Registered member: Book follow-up tab → calendar and available slots.',
         'Documents, care progress, and billing are on the other tabs.',
       ],

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CalendarClock, FileText, HeartPulse, LogOut, Receipt } from 'lucide-react'
+import { CalendarClock, ClipboardList, FileText, HeartPulse, LogOut, Receipt } from 'lucide-react'
 import type { User } from '@/types/entities'
 import PatientDocuments from '../components/PatientDocuments'
 import PortalBooking from '../components/portal/PortalBooking'
@@ -84,7 +84,7 @@ export default function PatientPortal({ user, token, onLogout }: Props) {
   const nav = useMemo(() => {
     if (!isRegistered) {
       return [
-        { id: 'appointments' as PortalPage, label: 'Get started', shortLabel: 'Start', Icon: CalendarClock },
+        { id: 'appointments' as PortalPage, label: 'One-Time Registration', shortLabel: 'Register', Icon: ClipboardList },
         { id: 'documents' as PortalPage, label: 'My documents', shortLabel: 'Docs', Icon: FileText },
       ]
     }

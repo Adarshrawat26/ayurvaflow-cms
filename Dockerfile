@@ -16,7 +16,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+# Railway injects PORT at runtime — do not hardcode in production
 
 RUN apk add --no-cache su-exec \
   && addgroup -S ayurva && adduser -S ayurva -G ayurva
@@ -31,12 +31,11 @@ COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoin
 
 RUN chmod +x ./scripts/docker-entrypoint.sh \
   && mkdir -p prisma/data \
-  && chown -R ayurva:ayurva /app
+  && chown -R ayurva:ayurva prisma/data
 
-# Entrypoint fixes volume permissions then drops to ayurva via su-exec
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=5 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/api/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["./scripts/docker-entrypoint.sh"]

@@ -87,7 +87,7 @@ export default function Login() {
             <p className="text-gray-500 text-xs mb-5">
               {mode === 'staff'
                 ? 'Enter your staff credentials to continue'
-                : 'Members book follow-ups · New patients see the registration guide'}
+                : 'Members book follow-ups · New patients go to One-Time Registration'}
             </p>
 
             {IS_DEV && mode === 'staff' && (
@@ -131,7 +131,7 @@ export default function Login() {
                   }}
                   className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-amber-300 text-amber-700 hover:border-amber-500 transition-colors text-left"
                 >
-                  New patient — Anita Nair (registration guide)
+                  New patient — Anita Nair (one-time registration)
                 </button>
               </div>
             )}

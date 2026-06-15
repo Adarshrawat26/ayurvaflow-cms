@@ -32,6 +32,11 @@ app.use(
 )
 app.use(express.json({ limit: '15mb' }))
 
+// Liveness — no DB; used by Docker/Railway while migrations/seed run
+app.get('/api/live', (_req, res) => {
+  res.status(200).json({ status: 'ok' })
+})
+
 app.get('/api/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`
