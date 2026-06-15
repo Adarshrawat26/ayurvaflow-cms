@@ -140,9 +140,9 @@ export default function PortalBooking({ token, patientName, careDoctor, appointm
   const stepIndex = STEPS.findIndex(s => s.id === step)
 
   return (
-    <div className="space-y-4 max-w-lg mx-auto">
+    <div className="space-y-4 md:space-y-5 w-full">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Hi {firstName}</h2>
+        <h2 className="text-lg md:text-xl font-semibold text-gray-900">Hi {firstName}</h2>
         <p className="text-sm text-gray-500 mt-0.5">Book your follow-up in 2 taps</p>
       </div>
 
@@ -162,80 +162,90 @@ export default function PortalBooking({ token, patientName, careDoctor, appointm
         ))}
       </div>
 
-      {nextVisit && step === 'pick' && (
-        <div className="card p-3 border-[#1B4332]/15 bg-[#1B4332]/[0.03] text-sm">
-          <span className="text-[10px] uppercase tracking-wide text-[#1B4332] font-semibold">Up next · </span>
-          <span className="text-gray-700">
-            {formatShortDate(nextVisit.date)} {nextVisit.time}
-          </span>
-        </div>
-      )}
-
       {!careDoctor ? (
         <div className="card p-6 text-center text-sm text-gray-500">
           Call reception to link your doctor before booking online.
         </div>
       ) : step === 'pick' ? (
-        <>
-          <div className="card p-4">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <p className="text-xs text-gray-500 truncate">{careDoctor}</p>
-              <button
-                type="button"
-                onClick={() => setCalendarOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-[#1B4332] bg-[#1B4332]/5 hover:bg-[#1B4332]/10 shrink-0"
-              >
-                <CalendarDays size={14} />
-                Full view
-              </button>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setWeekStart(addDays(weekStart, -7))}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
-                aria-label="Previous week"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <div className="flex-1 grid grid-cols-7 gap-1">
-                {weekDates.map(iso => {
-                  const d = new Date(iso + 'T12:00:00')
-                  const isPast = iso < today
-                  const active = iso === selectedDate
-                  return (
-                    <button
-                      key={iso}
-                      type="button"
-                      disabled={isPast}
-                      onClick={() => pickDate(iso)}
-                      className={`flex flex-col items-center py-2 rounded-xl transition-colors ${
-                        active ? 'bg-[#1B4332] text-white'
-                          : isPast ? 'text-gray-300 cursor-not-allowed'
-                            : 'hover:bg-gray-50 text-gray-700'
-                      }`}
-                    >
-                      <span className="text-[9px] opacity-80">{d.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 2)}</span>
-                      <span className="text-sm font-semibold">{d.getDate()}</span>
-                      {myDates.has(iso) && (
-                        <span className={`w-1 h-1 rounded-full mt-0.5 ${active ? 'bg-white' : 'bg-[#52B788]'}`} />
-                      )}
-                    </button>
-                  )
-                })}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+          <div className="space-y-4">
+            {nextVisit && (
+              <div className="card p-3 md:p-4 border-[#1B4332]/15 bg-[#1B4332]/[0.03] text-sm lg:hidden">
+                <span className="text-[10px] uppercase tracking-wide text-[#1B4332] font-semibold">Up next · </span>
+                <span className="text-gray-700">
+                  {formatShortDate(nextVisit.date)} {nextVisit.time}
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setWeekStart(addDays(weekStart, 7))}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
-                aria-label="Next week"
-              >
-                <ChevronRight size={16} />
-              </button>
+            )}
+
+            <div className="card p-4 md:p-5">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <p className="text-xs text-gray-500 truncate">{careDoctor}</p>
+                <button
+                  type="button"
+                  onClick={() => setCalendarOpen(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-[#1B4332] bg-[#1B4332]/5 hover:bg-[#1B4332]/10 shrink-0"
+                >
+                  <CalendarDays size={14} />
+                  Full view
+                </button>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setWeekStart(addDays(weekStart, -7))}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                  aria-label="Previous week"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <div className="flex-1 grid grid-cols-7 gap-1 md:gap-1.5">
+                  {weekDates.map(iso => {
+                    const d = new Date(iso + 'T12:00:00')
+                    const isPast = iso < today
+                    const active = iso === selectedDate
+                    return (
+                      <button
+                        key={iso}
+                        type="button"
+                        disabled={isPast}
+                        onClick={() => pickDate(iso)}
+                        className={`flex flex-col items-center py-2 md:py-2.5 rounded-xl transition-colors ${
+                          active ? 'bg-[#1B4332] text-white'
+                            : isPast ? 'text-gray-300 cursor-not-allowed'
+                              : 'hover:bg-gray-50 text-gray-700'
+                        }`}
+                      >
+                        <span className="text-[9px] md:text-[10px] opacity-80">{d.toLocaleDateString('en-IN', { weekday: 'short' }).slice(0, 2)}</span>
+                        <span className="text-sm md:text-base font-semibold">{d.getDate()}</span>
+                        {myDates.has(iso) && (
+                          <span className={`w-1 h-1 rounded-full mt-0.5 ${active ? 'bg-white' : 'bg-[#52B788]'}`} />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWeekStart(addDays(weekStart, 7))}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                  aria-label="Next week"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="card p-4">
+          <div className="card p-4 md:p-5">
+            {nextVisit && (
+              <div className="hidden lg:block mb-4 p-3 rounded-lg border border-[#1B4332]/15 bg-[#1B4332]/[0.03] text-sm">
+                <span className="text-[10px] uppercase tracking-wide text-[#1B4332] font-semibold">Up next · </span>
+                <span className="text-gray-700">
+                  {formatShortDate(nextVisit.date)} {nextVisit.time}
+                </span>
+              </div>
+            )}
             <p className="text-xs font-medium text-gray-700 mb-3">
               Pick a time · {formatShortDate(selectedDate)}
             </p>
@@ -246,7 +256,7 @@ export default function PortalBooking({ token, patientName, careDoctor, appointm
             ) : slots.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-6">No slots this day — try another date.</p>
             ) : (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {slots.map(time => (
                   <button
                     key={time}
@@ -273,58 +283,62 @@ export default function PortalBooking({ token, patientName, careDoctor, appointm
             careDoctor={careDoctor}
             onSelectDate={pickDate}
           />
-        </>
+        </div>
       ) : (
-        <div className="space-y-4">
-          <button
-            type="button"
-            onClick={() => setStep('pick')}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800"
-          >
-            <ArrowLeft size={14} /> Change time
-          </button>
+        <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start lg:space-y-0 max-w-2xl lg:max-w-none">
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setStep('pick')}
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800"
+            >
+              <ArrowLeft size={14} /> Change time
+            </button>
 
-          <div className="card p-5 space-y-3">
-            <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">Your booking</p>
-            <p className="text-base font-semibold text-gray-900">{fee.label}</p>
-            <p className="text-sm text-gray-600">
-              {formatShortDate(selectedDate!)} · {selectedTime && formatTimeRange(selectedTime, 45)}
-            </p>
-            <p className="text-xs text-gray-500">{careDoctor}</p>
-            <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
-              <span className="text-sm text-gray-600">Total (incl. GST)</span>
-              <span className="text-xl font-bold text-[#1B4332]">₹{fee.total.toLocaleString('en-IN')}</span>
+            <div className="card p-5 md:p-6 space-y-3">
+              <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">Your booking</p>
+              <p className="text-base md:text-lg font-semibold text-gray-900">{fee.label}</p>
+              <p className="text-sm text-gray-600">
+                {formatShortDate(selectedDate!)} · {selectedTime && formatTimeRange(selectedTime, 45)}
+              </p>
+              <p className="text-xs text-gray-500">{careDoctor}</p>
+              <div className="pt-3 border-t border-gray-100 flex justify-between items-baseline">
+                <span className="text-sm text-gray-600">Total (incl. GST)</span>
+                <span className="text-xl md:text-2xl font-bold text-[#1B4332]">₹{fee.total.toLocaleString('en-IN')}</span>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-xs font-medium text-gray-700 px-1">Pay securely</p>
-            {PAYMENT_OPTIONS.map(opt => (
-              <button
-                key={opt.id}
-                type="button"
-                disabled={paying !== null}
-                onClick={() => pay(opt.id)}
-                className="card w-full p-4 flex items-center justify-between hover:border-[#1B4332]/40 transition-colors disabled:opacity-60"
-              >
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500">{opt.hint}</p>
-                </div>
-                {paying === opt.id ? (
-                  <Loader2 size={18} className="animate-spin text-[#1B4332]" />
-                ) : (
-                  <span className="text-xs font-medium text-[#1B4332]">Pay ₹{fee.total.toLocaleString('en-IN')}</span>
-                )}
-              </button>
-            ))}
-          </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+              {PAYMENT_OPTIONS.map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  disabled={paying !== null}
+                  onClick={() => pay(opt.id)}
+                  className="card w-full p-4 flex items-center justify-between hover:border-[#1B4332]/40 transition-colors disabled:opacity-60"
+                >
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
+                    <p className="text-xs text-gray-500">{opt.hint}</p>
+                  </div>
+                  {paying === opt.id ? (
+                    <Loader2 size={18} className="animate-spin text-[#1B4332]" />
+                  ) : (
+                    <span className="text-xs font-medium text-[#1B4332]">Pay ₹{fee.total.toLocaleString('en-IN')}</span>
+                  )}
+                </button>
+              ))}
+            </div>
 
-          {import.meta.env.DEV && (
-            <p className="text-[10px] text-gray-400 text-center">
-              Simulated payment for demo — connects to Razorpay in production
-            </p>
-          )}
+            {import.meta.env.DEV && (
+              <p className="text-[10px] text-gray-400 text-center lg:text-left">
+                Simulated payment for demo — connects to Razorpay in production
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

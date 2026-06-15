@@ -134,8 +134,8 @@ export default function PatientDocuments({ token, mode, patientId, canDelete = t
   }
 
   return (
-    <div className="space-y-4">
-      <div className="card p-4 border border-dashed border-gray-300 bg-gray-50/50">
+    <div className="space-y-4 lg:space-y-5">
+      <div className="card p-4 md:p-5 border border-dashed border-gray-300 bg-gray-50/50 lg:max-w-xl">
         <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">Upload document</h4>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
@@ -173,9 +173,9 @@ export default function PatientDocuments({ token, mode, patientId, canDelete = t
           <p className="text-gray-500 text-sm">No documents on file</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className={`gap-2 ${mode === 'portal' ? 'grid sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'space-y-2'}`}>
           {docs.map(doc => (
-            <div key={doc.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+            <div key={doc.id} className="flex items-center justify-between gap-3 p-3 md:p-4 rounded-lg bg-gray-50 border border-gray-100">
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900 truncate">{doc.fileName}</div>
                 <div className="text-[10px] text-gray-500 mt-0.5">
