@@ -8,10 +8,11 @@ interface ClinicContact {
 }
 
 interface Props {
-  patientName: string
+  patientName?: string
   clinic: string
   contact: ClinicContact
   onOpenDocuments?: () => void
+  onBackToSignIn?: () => void
 }
 
 export default function PortalRegistrationOnboarding({
@@ -19,16 +20,27 @@ export default function PortalRegistrationOnboarding({
   clinic,
   contact,
   onOpenDocuments,
+  onBackToSignIn,
 }: Props) {
-  const firstName = patientName.split(' ')[0]
+  const greeting = patientName
+    ? `Hi ${patientName.split(' ')[0]} — complete your registration at ${clinic} to book online`
+    : `Welcome — complete your one-time registration at ${clinic} to book follow-ups online`
 
   return (
     <div className="space-y-4 lg:space-y-6">
+      {onBackToSignIn && (
+        <button
+          type="button"
+          onClick={onBackToSignIn}
+          className="text-xs font-medium text-[#1B4332] hover:underline"
+        >
+          ← Already registered? Sign in
+        </button>
+      )}
+
       <div className="text-center sm:text-left lg:max-w-none">
         <h2 className="text-lg md:text-xl font-semibold text-gray-900">One-Time Registration</h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Hi {firstName} — complete your registration at {clinic} to book online
-        </p>
+        <p className="text-sm text-gray-500 mt-1">{greeting}</p>
       </div>
 
       <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
