@@ -1,7 +1,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Lower memory use on Railway builders (exit 137 = OOM)
+# Lower memory use on Railway/Render builders (exit 137 = OOM)
 ENV NODE_OPTIONS=--max-old-space-size=2048
 
 COPY package*.json .npmrc ./
@@ -16,12 +16,12 @@ FROM node:22-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
-# Railway injects PORT at runtime — do not hardcode in production
+ENV DATABASE_URL=file:./data/ayurvaflow.db
+# Platform injects PORT at runtime (Railway, Render, etc.)
 
-RUN apk add --no-cache su-exec \
-  && addgroup -S ayurva && adduser -S ayurva -G ayurva
+# openssl: Prisma/SQLite on Alpine; ca-certificates: HTTPS if needed
+RUN apk add --no-cache openssl ca-certificates
 
-# Reuse pruned node_modules from builder — no second npm ci (avoids OOM + prisma postinstall race)
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
@@ -30,8 +30,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 
 RUN chmod +x ./scripts/docker-entrypoint.sh \
-  && mkdir -p prisma/data \
-  && chown -R ayurva:ayurva prisma/data
+  && mkdir -p prisma/data
 
 EXPOSE 3001
 

@@ -11,6 +11,8 @@ import { isProduction, validateEnv } from './lib/env.js'
 
 validateEnv()
 
+console.log(`[boot] NODE_ENV=${process.env.NODE_ENV ?? 'unset'} PORT=${process.env.PORT ?? 'unset'}`)
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT) || 3001
 const isProd = isProduction()

@@ -30,7 +30,7 @@ export function validateEnv(): void {
   }
 
   if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL is required in production')
+    console.error('❌ DATABASE_URL is required in production (default: file:./data/ayurvaflow.db)')
     process.exit(1)
   }
 }
