@@ -118,7 +118,7 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
         const [h, m] = a.time.split(':').map(Number)
         return h * 60 + m + a.duration > nowMin
       })
-  }, [clinicIndex, filterDoc, today])
+  }, [clinicIndex, filterDoc])
 
   const ppm       = HOUR_H / 60
   const nowTop    = selectedDay === today ? minutesFromDayStart(DAY_START) * ppm : -1

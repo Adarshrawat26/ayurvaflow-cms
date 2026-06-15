@@ -85,7 +85,9 @@ export default function Login() {
 
             <h2 className="text-base font-semibold text-gray-900 mb-1">Sign in</h2>
             <p className="text-gray-500 text-xs mb-5">
-              {mode === 'staff' ? 'Enter your staff credentials to continue' : 'Access your appointments, billing, and documents'}
+              {mode === 'staff'
+                ? 'Enter your staff credentials to continue'
+                : 'Members book follow-ups · New patients see the registration guide'}
             </p>
 
             {IS_DEV && mode === 'staff' && (
@@ -108,17 +110,30 @@ export default function Login() {
             )}
 
             {IS_DEV && mode === 'patient' && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('priya@email.com')
-                  setPassword('Kairali123!')
-                  dispatch(clearError())
-                }}
-                className="w-full py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors mb-5"
-              >
-                Demo patient (Priya Sharma)
-              </button>
+              <div className="grid grid-cols-1 gap-2 mb-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('priya@email.com')
+                    setPassword('Kairali123!')
+                    dispatch(clearError())
+                  }}
+                  className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"
+                >
+                  Registered member — Priya (your calendar only)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail('anita@email.com')
+                    setPassword('Kairali123!')
+                    dispatch(clearError())
+                  }}
+                  className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-amber-300 text-amber-700 hover:border-amber-500 transition-colors text-left"
+                >
+                  New patient — Anita Nair (registration guide)
+                </button>
+              </div>
             )}
 
             <div className="space-y-3 mb-5">

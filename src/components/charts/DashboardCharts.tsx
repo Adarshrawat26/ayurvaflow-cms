@@ -119,12 +119,11 @@ function donutArc(startPct: number, sweepPct: number) {
 }
 
 export function ReferralChart({ items }: { items: ReferralItem[] }) {
-  let offset = 0
-  const segments = items.map(item => {
-    const seg = { item, start: offset }
-    offset += item.pct
-    return seg
-  })
+  const segments = items.reduce<{ item: ReferralItem; start: number }[]>((acc, item) => {
+    const start = acc.length ? acc[acc.length - 1].start + acc[acc.length - 1].item.pct : 0
+    acc.push({ item, start })
+    return acc
+  }, [])
 
   return (
     <div className="min-w-0 w-full overflow-hidden">

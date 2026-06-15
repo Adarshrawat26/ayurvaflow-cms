@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.env
+.env.*
+!.env.example
+*.db
+prisma/data
+/data
+.DS_Store
+*.log
+coverage
+.vscode
+.idea

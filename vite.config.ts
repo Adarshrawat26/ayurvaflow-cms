@@ -9,6 +9,10 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
+  },
   server: {
     proxy: {
       // Dev API on 3010 — avoids conflict with `npm start` on 3001

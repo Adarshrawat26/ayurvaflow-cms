@@ -3,6 +3,12 @@ import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { sampleRegistrationForm } from './seedRegistrations.js'
 
+if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== '1') {
+  console.error('❌ Seeding is disabled in production.')
+  console.error('   First-time Docker only: ALLOW_SEED=1 npm run db:seed')
+  process.exit(1)
+}
+
 const prisma = new PrismaClient()
 
 const DEFAULT_PASSWORD = 'Kairali123!'
@@ -280,6 +286,7 @@ async function main() {
   const portalPatients = [
     { patientId: 'P001', email: 'priya@email.com' },
     { patientId: 'P002', email: 'raj@email.com' },
+    { patientId: 'P003', email: 'anita@email.com' },
   ]
 
   for (const p of portalPatients) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CalendarClock, ClipboardPlus } from 'lucide-react'
 import type { Role } from '@/types/entities'
 import { GUIDE_FLOWS, GUIDE_QUICK_REF, GUIDE_ROLES, type GuideRole } from '@/data/registrationGuide'
@@ -7,17 +7,11 @@ import ModalShell from './ModalShell'
 const defaultRole = (r?: Role): GuideRole =>
   r === 'admin' || r === 'doctor' || r === 'receptionist' ? r : r === 'therapist' ? 'therapist' : r === 'patient' ? 'patient' : 'receptionist'
 
-export default function RegistrationGuideModal({ open, onClose, userRole }: {
-  open: boolean; onClose: () => void; userRole?: Role
-}) {
+function GuideBody({ userRole }: { userRole?: Role }) {
   const [role, setRole] = useState<GuideRole>(() => defaultRole(userRole))
-  useEffect(() => { if (open) setRole(defaultRole(userRole)) }, [open, userRole])
-
   const { intro, flows } = GUIDE_FLOWS[role]
 
   return (
-    <ModalShell open={open} onClose={onClose} title="Registration guide"
-      subtitle="How each role accesses the one-time registration form" maxWidth="lg">
       <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
         <div className="flex gap-1.5 flex-wrap">
           {GUIDE_ROLES.map(r => (
@@ -72,6 +66,16 @@ export default function RegistrationGuideModal({ open, onClose, userRole }: {
           </div>
         </div>
       </div>
+  )
+}
+
+export default function RegistrationGuideModal({ open, onClose, userRole }: {
+  open: boolean; onClose: () => void; userRole?: Role
+}) {
+  return (
+    <ModalShell open={open} onClose={onClose} title="Registration guide"
+      subtitle="How each role accesses the one-time registration form" maxWidth="lg">
+      {open ? <GuideBody key={userRole ?? 'default'} userRole={userRole} /> : null}
     </ModalShell>
   )
 }

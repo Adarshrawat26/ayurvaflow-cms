@@ -17,6 +17,8 @@ import {
   toTreatmentStatus,
 } from '../lib/mappers.js'
 import { requireAuth, requireStaff, signToken } from '../middleware/auth.js'
+import { loginRateLimit } from '../middleware/rateLimit.js'
+import { isProduction } from '../lib/env.js'
 import { ALLOWED_MIME, mapDocument, MAX_FILE_BYTES, toDocType } from '../lib/documents.js'
 import {
   mapRegistration,
@@ -241,7 +243,7 @@ async function bootstrapData(tenantId: string) {
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-router.post('/auth/login', async (req, res) => {
+router.post('/auth/login', loginRateLimit, async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string }
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required' })
@@ -1085,7 +1087,11 @@ router.post('/staff', requireAuth, requireStaff, async (req, res) => {
     return
   }
 
-  const body = req.body
+  const body = req.body as { name?: string; password?: string; role?: string; email?: string; phone?: string; specialization?: string; experience?: number; status?: string; joinDate?: string }
+  if (isProduction() && !body.password) {
+    res.status(400).json({ error: 'Password is required when creating staff in production' })
+    return
+  }
   const names = (body.name as string).split(' ')
   const firstName = names[0]
   const lastName = names.slice(1).join(' ') || ''

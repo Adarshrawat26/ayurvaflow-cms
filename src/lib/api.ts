@@ -148,11 +148,45 @@ export const api = {
     request<{
       patient: { name: string; phone: string; email: string; balance: number; prakriti: string; purpose: string }
       clinic: string
+      isRegistered: boolean
+      clinicContact: { phone: string; email: string; address: string }
       registration: import('@/types/registration').PatientRegistrationRecord | null
+      careDoctor: string | null
     }>('/portal/me', {}, token),
 
   portalAppointments: (token: string) =>
     request<import('@/types/entities').Appointment[]>('/portal/appointments', {}, token),
+
+  portalAvailability: (token: string, date: string) =>
+    request<{
+      date: string
+      openTime: string
+      closeTime: string
+      doctors: { name: string; specialization: string; availableSlots: string[] }[]
+      myAppointments: import('@/types/entities').Appointment[]
+    }>(`/portal/availability?date=${encodeURIComponent(date)}`, {}, token),
+
+  portalBookingFee: (token: string) =>
+    request<{
+      label: string
+      subtotal: number
+      tax: number
+      total: number
+      currency: string
+    }>('/portal/booking-fee', {}, token),
+
+  portalBookAppointment: (token: string, data: {
+    date: string
+    time: string
+    doctor: string
+    type?: string
+    duration?: number
+    paymentMethod: import('@/lib/booking').PortalPaymentMethod
+  }) =>
+    request<import('@/lib/booking').BookingConfirmation>('/portal/appointments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, token),
 
   portalTreatments: (token: string) =>
     request<import('@/types/entities').Treatment[]>('/portal/treatments', {}, token),

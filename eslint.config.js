@@ -23,7 +23,13 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/components/ui/**/*.{ts,tsx}'],
+    files: [
+      'src/components/ui/**/*.{ts,tsx}',
+      'src/lib/ui.tsx',
+      'src/pages/PatientPortal.tsx',
+      'src/components/PatientDocuments.tsx',
+      'src/components/portal/**/*.{ts,tsx}',
+    ],
     rules: {
       'react-refresh/only-export-components': 'off',
       'react-hooks/set-state-in-effect': 'off',

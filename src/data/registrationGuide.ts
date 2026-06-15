@@ -67,11 +67,15 @@ export const GUIDE_FLOWS: Record<GuideRole, { intro?: string; flows: Flow[] }> =
     }],
   },
   patient: {
-    intro: 'Staff complete registration at the centre; you use the patient portal.',
+    intro: 'New patients follow the in-portal registration guide; registered members book follow-ups online.',
     flows: [{
       title: 'Patient portal', icon: CircleUser,
-      steps: ['Login as Patient → Overview, Docs, Appointments, Care, Bills.'],
-      note: 'You cannot fill the one-time registration form yourself.',
+      steps: [
+        'New patient: Login → Get started tab for step-by-step registration at the centre.',
+        'Registered member: Book follow-up tab → calendar and available slots.',
+        'Documents, care progress, and billing are on the other tabs.',
+      ],
+      note: 'The one-time registration form is completed with reception at the centre.',
     }],
   },
 }

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Setup database
+        run: npm run db:setup
+        env:
+          DATABASE_URL: file:./data/ci.db
+
+      - name: Production verify
+        run: npm run prod:verify
+        env:
+          DATABASE_URL: file:./data/ci.db
+          JWT_SECRET: ci-test-secret-that-is-long-enough-for-checks-32
+
+      - name: Start API (dev port)
+        run: |
+          PORT=3010 JWT_SECRET=ci-test-secret-that-is-long-enough-for-checks-32 npx tsx server/index.ts &
+          sleep 3
+          npm run smoke:all
+        env:
+          DATABASE_URL: file:./data/ci.db
+          NODE_ENV: development

@@ -81,6 +81,16 @@ async function main() {
   newPatient.res.status === 201 ? pass('Create patient', newPatient.body.id) : fail('Create patient', newPatient.body.error ?? newPatient.res.status)
   const testPatientId = newPatient.body.id ?? patientId
   const today = new Date().toISOString().slice(0, 10)
+  const staffApptDay = new Date()
+  staffApptDay.setDate(staffApptDay.getDate() + 40 + (Date.now() % 14))
+  const staffApptDate = staffApptDay.toISOString().slice(0, 10)
+  const staffReschedDay = new Date(staffApptDay)
+  staffReschedDay.setDate(staffReschedDay.getDate() + 1)
+  const staffReschedDate = staffReschedDay.toISOString().slice(0, 10)
+  const uniq = Date.now() % 480
+  const staffApptTime = `${String(9 + Math.floor(uniq / 60)).padStart(2, '0')}:${String(uniq % 60).padStart(2, '0')}`
+  const reschedUniq = (uniq + 120) % 480
+  const staffReschedTime = `${String(9 + Math.floor(reschedUniq / 60)).padStart(2, '0')}:${String(reschedUniq % 60).padStart(2, '0')}`
 
   const regForm = {
     regDate: today,
@@ -143,8 +153,8 @@ async function main() {
     body: JSON.stringify({
       patientId: testPatientId,
       doctor: doctorName,
-      date: today,
-      time: '16:00',
+      date: staffApptDate,
+      time: staffApptTime,
       type: 'Consultation',
       duration: 45,
     }),
@@ -161,9 +171,9 @@ async function main() {
 
     const resched = await req(`/appointments/${appt.body.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ date: today, time: '17:00', doctor: doctorName }),
+      body: JSON.stringify({ date: staffReschedDate, time: staffReschedTime, doctor: doctorName }),
     }, token)
-    resched.res.ok && resched.body.time === '17:00' ? pass('Reschedule appointment', resched.body.time) : fail('Reschedule appointment', resched.body.error ?? resched.res.status)
+    resched.res.ok && resched.body.time === staffReschedTime ? pass('Reschedule appointment', resched.body.time) : fail('Reschedule appointment', resched.body.error ?? resched.res.status)
   }
 
   const cancelAppt = await req('/appointments', {
@@ -332,6 +342,29 @@ async function main() {
 
     const portalAppts = await req('/portal/appointments', {}, pToken)
     portalAppts.res.ok ? pass('Portal appointments', `${portalAppts.body?.length ?? 0} items`) : fail('Portal appointments', portalAppts.body.error)
+
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 14)
+    const bookDate = tomorrow.toISOString().slice(0, 10)
+    const avail = await req(`/portal/availability?date=${bookDate}`, {}, pToken)
+    if (avail.res.ok) {
+      const doc = avail.body.doctors?.[0]
+      const slot = doc?.availableSlots?.[0]
+      pass('Portal availability', `${avail.body.doctors?.length ?? 0} doctors · ${doc?.availableSlots?.length ?? 0} slots`)
+      if (doc && slot) {
+        const booked = await req('/portal/appointments', {
+          method: 'POST',
+          body: JSON.stringify({ date: bookDate, time: slot, doctor: doc.name, type: 'Follow-up', paymentMethod: 'upi' }),
+        }, pToken)
+        booked.res.status === 201 && booked.body.confirmationId
+          ? pass('Portal book + pay', `${booked.body.confirmationId} · ₹${booked.body.payment?.amount}`)
+          : fail('Portal book + pay', booked.body.error ?? booked.res.status)
+      } else {
+        warn('Portal book appointment', 'no open slot to test')
+      }
+    } else {
+      fail('Portal availability', avail.body.error ?? avail.res.status)
+    }
 
     const portalDocs = await req('/portal/documents', {}, pToken)
     portalDocs.res.ok ? pass('Portal documents list', `${portalDocs.body?.length ?? 0} docs`) : fail('Portal documents list', portalDocs.body.error)
