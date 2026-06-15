@@ -32,6 +32,33 @@ import { hasSameDayConflict } from '../lib/intervals.js'
 
 const router = Router()
 
+function handleRouteError(res: import('express').Response, err: unknown, label: string) {
+  console.error(`${label}:`, err)
+  const msg = err instanceof Error ? err.message : String(err)
+  if (
+    msg.includes('does not exist')
+    || msg.includes('Unable to open')
+    || msg.includes('SQLite')
+    || msg.includes('SQLITE')
+  ) {
+    res.status(503).json({ error: 'Database is still initializing. Wait a minute and try again.' })
+    return
+  }
+  res.status(500).json({ error: 'Internal server error' })
+}
+
+router.get('/setup-status', async (_req, res) => {
+  try {
+    const [users, patientAccounts] = await Promise.all([
+      prisma.user.count(),
+      prisma.patientAccount.count(),
+    ])
+    res.json({ ok: true, users, patientAccounts })
+  } catch (err) {
+    handleRouteError(res, err, 'setup-status')
+  }
+})
+
 function parseClinicSettings(tenant: { name: string; settings: unknown }) {
   const s = (tenant.settings ?? {}) as Record<string, string>
   return {
@@ -244,46 +271,50 @@ async function bootstrapData(tenantId: string) {
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 router.post('/auth/login', loginRateLimit, async (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string }
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email and password are required' })
-    return
-  }
+  try {
+    const { email, password } = req.body as { email?: string; password?: string }
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' })
+      return
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-    include: { tenant: true },
-  })
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      include: { tenant: true },
+    })
 
-  if (!user || !user.isActive) {
-    res.status(401).json({ error: 'Invalid email or password' })
-    return
-  }
+    if (!user || !user.isActive) {
+      res.status(401).json({ error: 'Invalid email or password' })
+      return
+    }
 
-  const valid = await bcrypt.compare(password, user.passwordHash)
-  if (!valid) {
-    res.status(401).json({ error: 'Invalid email or password' })
-    return
-  }
+    const valid = await bcrypt.compare(password, user.passwordHash)
+    if (!valid) {
+      res.status(401).json({ error: 'Invalid email or password' })
+      return
+    }
 
-  await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } })
+    await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } })
 
-  const token = signToken({
-    userId: user.id,
-    tenantId: user.tenantId,
-    role: toRole(user.role),
-    email: user.email,
-    accountType: 'staff',
-  })
-
-  res.json({
-    token,
-    user: {
-      name: `${user.firstName} ${user.lastName}`.trim(),
+    const token = signToken({
+      userId: user.id,
+      tenantId: user.tenantId,
       role: toRole(user.role),
-      clinic: user.tenant.name,
-    },
-  })
+      email: user.email,
+      accountType: 'staff',
+    })
+
+    res.json({
+      token,
+      user: {
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        role: toRole(user.role),
+        clinic: user.tenant.name,
+      },
+    })
+  } catch (err) {
+    handleRouteError(res, err, 'staff login')
+  }
 })
 
 router.get('/auth/me', requireAuth, requireStaff, async (req, res) => {

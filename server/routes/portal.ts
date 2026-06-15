@@ -45,56 +45,75 @@ function dayRange(dateISO: string) {
 
 const router = Router()
 
+function handleRouteError(res: import('express').Response, err: unknown, label: string) {
+  console.error(`${label}:`, err)
+  const msg = err instanceof Error ? err.message : String(err)
+  if (
+    msg.includes('does not exist')
+    || msg.includes('Unable to open')
+    || msg.includes('SQLite')
+    || msg.includes('SQLITE')
+  ) {
+    res.status(503).json({ error: 'Database is still initializing. Wait a minute and try again.' })
+    return
+  }
+  res.status(500).json({ error: 'Internal server error' })
+}
+
 router.post('/auth/login', loginRateLimit, async (req, res) => {
-  const { email, password } = req.body as { email?: string; password?: string }
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email and password are required' })
-    return
-  }
+  try {
+    const { email, password } = req.body as { email?: string; password?: string }
+    if (!email || !password) {
+      res.status(400).json({ error: 'Email and password are required' })
+      return
+    }
 
-  const account = await prisma.patientAccount.findFirst({
-    where: {
-      email: email.toLowerCase(),
-      isActive: true,
-    },
-    include: { patient: true, tenant: true },
-  })
+    const account = await prisma.patientAccount.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        isActive: true,
+      },
+      include: { patient: true, tenant: true },
+    })
 
-  if (!account) {
-    res.status(401).json({ error: 'Invalid email or password' })
-    return
-  }
+    if (!account) {
+      res.status(401).json({ error: 'Invalid email or password' })
+      return
+    }
 
-  const valid = await bcrypt.compare(password, account.passwordHash)
-  if (!valid) {
-    res.status(401).json({ error: 'Invalid email or password' })
-    return
-  }
+    const valid = await bcrypt.compare(password, account.passwordHash)
+    if (!valid) {
+      res.status(401).json({ error: 'Invalid email or password' })
+      return
+    }
 
-  await prisma.patientAccount.update({
-    where: { id: account.id },
-    data: { lastLogin: new Date() },
-  })
+    await prisma.patientAccount.update({
+      where: { id: account.id },
+      data: { lastLogin: new Date() },
+    })
 
-  const token = signToken({
-    userId: account.id,
-    tenantId: account.tenantId,
-    role: 'patient',
-    email: account.email,
-    accountType: 'patient',
-    patientId: account.patientId,
-  })
-
-  res.json({
-    token,
-    user: {
-      name: account.patient.name,
-      role: 'patient' as const,
-      clinic: account.tenant.name,
-      patientId: account.patientId,
+    const token = signToken({
+      userId: account.id,
+      tenantId: account.tenantId,
+      role: 'patient',
       email: account.email,
-    },
-  })
+      accountType: 'patient',
+      patientId: account.patientId,
+    })
+
+    res.json({
+      token,
+      user: {
+        name: account.patient.name,
+        role: 'patient' as const,
+        clinic: account.tenant.name,
+        patientId: account.patientId,
+        email: account.email,
+      },
+    })
+  } catch (err) {
+    handleRouteError(res, err, 'patient login')
+  }
 })
 
 router.get('/me', requireAuth, requirePatient, async (req, res) => {

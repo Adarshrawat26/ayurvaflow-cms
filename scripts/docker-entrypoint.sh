@@ -31,29 +31,26 @@ mkdir -p /app/prisma/data
 echo "Running database migrations..."
 if ! npx prisma migrate deploy 2>&1; then
   echo "migrate deploy failed — falling back to db push..."
-  npx prisma db push 2>&1 || echo "WARN: database setup failed — server will still start"
+  if ! npx prisma db push 2>&1; then
+    echo "FATAL: Could not initialize database schema."
+    exit 1
+  fi
 fi
 
-seed_if_empty() {
-  if node --input-type=module -e "
-    import { PrismaClient } from '@prisma/client';
-    const p = new PrismaClient();
-    const n = await p.user.count();
-    await p.\$disconnect();
-    process.exit(n > 0 ? 0 : 1);
-  "; then
-    echo "Database already has users — skip seed."
-    return 0
-  fi
-  echo "First boot — seeding demo data..."
+echo "Checking database..."
+if ! node --input-type=module -e "
+  import { PrismaClient } from '@prisma/client';
+  const p = new PrismaClient();
+  const n = await p.user.count();
+  await p.\$disconnect();
+  process.exit(n > 0 ? 0 : 1);
+"; then
+  echo "First boot — seeding demo data (required before login)..."
   ALLOW_SEED=1 NODE_ENV=production npx tsx prisma/seed.ts
   echo "Seed complete."
-}
+else
+  echo "Database already has users — skip seed."
+fi
 
 echo "Starting AyurvaFlow on 0.0.0.0:${PORT}..."
-(
-  sleep 3
-  seed_if_empty || echo "WARN: Seed failed — app is running but may be empty."
-) &
-
 exec npm start
