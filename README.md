@@ -47,10 +47,10 @@ npm run dev
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@ayurvaflow.com | Kairali123! |
-| Receptionist | reception@ayurvaflow.com | Kairali123! |
-| Doctor | doctor@ayurvaflow.com | Kairali123! |
-| Therapist | therapist@ayurvaflow.com | Kairali123! |
+| Admin | admin@kairali.com | 1234 |
+| Receptionist | reception@kairali.com | 1234 |
+| Doctor | doctor@kairali.com | 1234 |
+| Therapist | therapist@kairali.com | 1234 |
 
 ## Production Deployment
 
@@ -137,7 +137,7 @@ Open http://localhost:3001
 
 Liveness probe: `GET /api/live` (instant). Full check: `GET /api/health` (includes DB).
 
-**Client login (demo):** `admin@ayurvaflow.com` / `Kairali123!` — change passwords before real use.
+**Client login (demo):** `admin@kairali.com` / `1234` — change passwords before real use.
 
 ### Option E: Render (Docker + persistent disk)
 

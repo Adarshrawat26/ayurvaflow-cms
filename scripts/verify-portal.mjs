@@ -21,7 +21,7 @@ async function main() {
 
   const login = await req('/portal/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email: 'priya@email.com', password: 'Kairali123!' }),
+    body: JSON.stringify({ email: 'priya@email.com', password: '1234' }),
   })
   console.log('login:', login.res.status, login.res.headers.get('content-type'), {
     hasToken: Boolean(login.body?.token),

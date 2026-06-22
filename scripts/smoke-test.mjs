@@ -4,8 +4,8 @@
  * Usage: node scripts/smoke-test.mjs [baseUrl]
  */
 const BASE = process.argv[2] ?? 'http://localhost:3001/api'
-const EMAIL = 'admin@ayurvaflow.com'
-const PASSWORD = 'Kairali123!'
+const EMAIL = 'admin@kairali.com'
+const PASSWORD = '1234'
 
 const results = []
 
@@ -395,7 +395,7 @@ async function main() {
   }
 
   // Staff create blocked for non-admin — test with reception token if available
-  const recLogin = await req('/auth/login', { method: 'POST', body: JSON.stringify({ email: 'reception@ayurvaflow.com', password: PASSWORD }) })
+  const recLogin = await req('/auth/login', { method: 'POST', body: JSON.stringify({ email: 'reception@kairali.com', password: PASSWORD }) })
   if (recLogin.res.ok) {
     const recToken = recLogin.body.token
     const blocked = await req('/staff', {

@@ -1126,7 +1126,7 @@ router.post('/staff', requireAuth, requireStaff, async (req, res) => {
   const names = (body.name as string).split(' ')
   const firstName = names[0]
   const lastName = names.slice(1).join(' ') || ''
-  const hash = await bcrypt.hash(body.password ?? 'Kairali123!', 10)
+  const hash = await bcrypt.hash(body.password ?? '1234', 10)
 
   const user = await prisma.user.create({
     data: {

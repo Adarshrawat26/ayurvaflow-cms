@@ -11,10 +11,10 @@ import { DEFAULT_CLINIC_SETTINGS } from '@/types/clinic'
 const IS_DEV = import.meta.env.DEV
 
 const DEV_ACCOUNTS: { role: Role; label: string; email: string }[] = [
-  { role: 'admin', label: 'Admin', email: 'admin@ayurvaflow.com' },
-  { role: 'receptionist', label: 'Receptionist', email: 'reception@ayurvaflow.com' },
-  { role: 'doctor', label: 'Doctor', email: 'doctor@ayurvaflow.com' },
-  { role: 'therapist', label: 'Therapist', email: 'therapist@ayurvaflow.com' },
+  { role: 'admin', label: 'Admin', email: 'admin@kairali.com' },
+  { role: 'receptionist', label: 'Receptionist', email: 'reception@kairali.com' },
+  { role: 'doctor', label: 'Doctor', email: 'doctor@kairali.com' },
+  { role: 'therapist', label: 'Therapist', email: 'therapist@kairali.com' },
 ]
 
 type LoginMode = 'staff' | 'patient'
@@ -119,7 +119,7 @@ export default function Login() {
                         type="button"
                         onClick={() => {
                           setEmail(account.email)
-                          setPassword('Kairali123!')
+                          setPassword('1234')
                           dispatch(clearError())
                         }}
                         className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors"
@@ -136,7 +136,7 @@ export default function Login() {
                       type="button"
                       onClick={() => {
                         setEmail('priya@email.com')
-                        setPassword('Kairali123!')
+                        setPassword('1234')
                         dispatch(clearError())
                       }}
                       className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"

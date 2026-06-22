@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== '1') {
 
 const prisma = new PrismaClient()
 
-const DEFAULT_PASSWORD = 'Kairali123!'
+const DEFAULT_PASSWORD = '1234'
 
 function dateOffset(days: number): Date {
   const d = new Date()
@@ -21,10 +21,10 @@ function dateOffset(days: number): Date {
 }
 
 const LOGIN_USERS = [
-  { email: 'admin@ayurvaflow.com', role: 'ADMIN' as const, firstName: 'Vikram', lastName: 'Nair', phone: '9876540001' },
-  { email: 'reception@ayurvaflow.com', role: 'RECEPTIONIST' as const, firstName: 'Deepa', lastName: 'Pillai', phone: '9876540002' },
-  { email: 'doctor@ayurvaflow.com', role: 'DOCTOR' as const, firstName: 'Dr. Arathi', lastName: 'Menon', phone: '9876540003', specialization: 'Panchakarma & Detox', experience: 14 },
-  { email: 'therapist@ayurvaflow.com', role: 'THERAPIST' as const, firstName: 'Arun', lastName: 'Krishnan', phone: '9876540006', specialization: 'Abhyangam & Shirodhara', experience: 6 },
+  { email: 'admin@kairali.com', role: 'ADMIN' as const, firstName: 'Vikram', lastName: 'Nair', phone: '9876540001' },
+  { email: 'reception@kairali.com', role: 'RECEPTIONIST' as const, firstName: 'Deepa', lastName: 'Pillai', phone: '9876540002' },
+  { email: 'doctor@kairali.com', role: 'DOCTOR' as const, firstName: 'Dr. Arathi', lastName: 'Menon', phone: '9876540003', specialization: 'Panchakarma & Detox', experience: 14 },
+  { email: 'therapist@kairali.com', role: 'THERAPIST' as const, firstName: 'Arun', lastName: 'Krishnan', phone: '9876540006', specialization: 'Abhyangam & Shirodhara', experience: 6 },
 ]
 
 const STAFF_EXTRA = [
@@ -264,7 +264,7 @@ async function main() {
     },
   ]
 
-  const adminUser = await prisma.user.findFirst({ where: { email: 'admin@ayurvaflow.com' } })
+  const adminUser = await prisma.user.findFirst({ where: { email: 'admin@kairali.com' } })
   for (const r of seededRegs) {
     await prisma.patientRegistration.create({
       data: {
@@ -310,7 +310,7 @@ async function main() {
         mimeType: 'image/png',
         fileSize: 68,
         fileData: sampleImage,
-        uploadedBy: 'admin@ayurvaflow.com',
+        uploadedBy: 'admin@kairali.com',
       },
       {
         tenantId: tenant.id,
