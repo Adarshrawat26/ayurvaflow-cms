@@ -33,7 +33,14 @@ npx prisma migrate deploy 2>&1 || echo "WARN: migrate deploy skipped or partial"
 npx prisma db push 2>&1 || { echo "FATAL: prisma db push failed"; exit 1; }
 
 echo "Checking for demo data..."
-if node --input-type=module -e "
+if [ "${FORCE_SEED}" = "1" ]; then
+  echo "FORCE_SEED=1 — reseeding demo data..."
+  if ALLOW_SEED=1 NODE_ENV=production npx tsx prisma/seed.ts; then
+    echo "Seed complete."
+  else
+    echo "WARN: Seed failed in entrypoint — server will retry bootstrap on start."
+  fi
+elif node --input-type=module -e "
   import { PrismaClient } from '@prisma/client';
   const p = new PrismaClient();
   const n = await p.user.count();

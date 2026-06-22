@@ -44,7 +44,11 @@ export async function bootstrapDatabase(): Promise<void> {
     throw err
   }
 
-  if (users === 0 && isProduction()) {
+  if (process.env.FORCE_SEED === '1') {
+    console.log('[db] FORCE_SEED=1 — reseeding demo data...')
+    run('ALLOW_SEED=1 NODE_ENV=production npx tsx prisma/seed.ts')
+    users = await prisma.user.count()
+  } else if (users === 0 && isProduction()) {
     console.log('[db] Empty database — seeding demo data...')
     run('ALLOW_SEED=1 NODE_ENV=production npx tsx prisma/seed.ts')
     users = await prisma.user.count()
