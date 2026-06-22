@@ -23,7 +23,7 @@ ENV DATABASE_URL=file:./data/ayurvaflow.db
 RUN apk add --no-cache openssl ca-certificates
 
 # Bump to invalidate Render/Railway layer cache when entrypoint changes
-ARG BOOTSTRAP_VERSION=2
+ARG BOOTSTRAP_VERSION=3
 RUN echo "bootstrap=${BOOTSTRAP_VERSION}"
 
 COPY --from=builder /app/package*.json ./
