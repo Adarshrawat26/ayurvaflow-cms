@@ -152,9 +152,6 @@ export default function Login() {
                       </button>
                     </div>
                   )}
-                  <p className="text-[10px] text-gray-400">
-                    Old @ayurvaflow.com logins no longer work after the demo reset.
-                  </p>
                 </div>
 
                 <div className="space-y-3 mb-5">
