@@ -25,7 +25,5 @@ services:
         value: file:./data/ayurvaflow.db
       - key: TRUST_PROXY
         value: "1"
-      - key: FORCE_SEED
-        value: "1"
       - key: JWT_SECRET
         generateValue: true
