@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js'
 import {
   fmtDate,
   fromApptStatus,
+  fromGender,
   num,
   toApptStatus,
   toGender,
