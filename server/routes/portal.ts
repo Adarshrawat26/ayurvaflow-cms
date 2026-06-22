@@ -10,7 +10,14 @@ import {
   toInvoiceStatus,
   toTreatmentStatus,
 } from '../lib/mappers.js'
-import { mapRegistration } from '../lib/registration.js'
+import {
+  mapRegistration,
+  nameFromForm,
+  nextRegNumber,
+  purposeFromForm,
+  referralFromForm,
+  validateRegistrationForm,
+} from '../lib/registration.js'
 import { ALLOWED_MIME, mapDocument, MAX_FILE_BYTES, toDocType } from '../lib/documents.js'
 import { hasSameDayConflict } from '../lib/intervals.js'
 import { getPatientCareDoctor } from '../lib/patientDoctor.js'
@@ -116,6 +123,109 @@ router.post('/auth/login', loginRateLimit, async (req, res) => {
   }
 })
 
+router.post('/auth/signup', loginRateLimit, async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body as {
+      name?: string
+      email?: string
+      phone?: string
+      password?: string
+    }
+
+    const trimmedName = name?.trim() ?? ''
+    const normalizedEmail = email?.trim().toLowerCase() ?? ''
+    const trimmedPhone = phone?.trim() ?? ''
+
+    if (!trimmedName || !normalizedEmail || !trimmedPhone || !password) {
+      res.status(400).json({ error: 'Name, email, phone, and password are required' })
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      res.status(400).json({ error: 'Enter a valid email address' })
+      return
+    }
+    if (password.length < 4) {
+      res.status(400).json({ error: 'Password must be at least 4 characters' })
+      return
+    }
+    if (!/^\d{10}$/.test(trimmedPhone.replace(/\D/g, ''))) {
+      res.status(400).json({ error: 'Enter a valid 10-digit mobile number' })
+      return
+    }
+    const phoneDigits = trimmedPhone.replace(/\D/g, '').slice(-10)
+
+    const tenant = await prisma.tenant.findFirst({
+      where: { status: 'ACTIVE' },
+      orderBy: { createdAt: 'asc' },
+    })
+    if (!tenant) {
+      res.status(503).json({ error: 'Clinic is not available for sign-up right now' })
+      return
+    }
+
+    const existingAccount = await prisma.patientAccount.findFirst({
+      where: { tenantId: tenant.id, email: normalizedEmail },
+    })
+    if (existingAccount) {
+      res.status(409).json({ error: 'An account with this email already exists — sign in instead' })
+      return
+    }
+
+    const count = await prisma.patient.count({ where: { tenantId: tenant.id } })
+    const patientId = `P${String(count + 1).padStart(3, '0')}`
+    const passwordHash = await bcrypt.hash(password, 10)
+
+    const patient = await prisma.patient.create({
+      data: {
+        id: patientId,
+        tenantId: tenant.id,
+        patientCode: patientId,
+        name: trimmedName,
+        age: 0,
+        gender: 'M',
+        phone: phoneDigits,
+        email: normalizedEmail,
+        city: '',
+        referralSource: 'Online',
+        purpose: 'General Wellness',
+        status: 'ACTIVE',
+      },
+    })
+
+    const account = await prisma.patientAccount.create({
+      data: {
+        tenantId: tenant.id,
+        patientId: patient.id,
+        email: normalizedEmail,
+        passwordHash,
+      },
+      include: { patient: true, tenant: true },
+    })
+
+    const token = signToken({
+      userId: account.id,
+      tenantId: account.tenantId,
+      role: 'patient',
+      email: account.email,
+      accountType: 'patient',
+      patientId: account.patientId,
+    })
+
+    res.status(201).json({
+      token,
+      user: {
+        name: account.patient.name,
+        role: 'patient' as const,
+        clinic: account.tenant.name,
+        patientId: account.patientId,
+        email: account.email,
+      },
+    })
+  } catch (err) {
+    handleRouteError(res, err, 'patient signup')
+  }
+})
+
 router.get('/me', requireAuth, requirePatient, async (req, res) => {
   const patientId = req.auth!.patientId!
   const patient = await prisma.patient.findUnique({
@@ -155,6 +265,75 @@ router.get('/me', requireAuth, requirePatient, async (req, res) => {
   })
 })
 
+router.post('/registration', requireAuth, requirePatient, async (req, res) => {
+  try {
+    const tenantId = req.auth!.tenantId
+    const patientId = req.auth!.patientId!
+    const form = req.body.formData as Record<string, unknown>
+    if (!form) {
+      res.status(400).json({ error: 'Registration form data is required' })
+      return
+    }
+
+    const validationError = validateRegistrationForm(form)
+    if (validationError) {
+      res.status(400).json({ error: validationError })
+      return
+    }
+
+    const patient = await prisma.patient.findFirst({
+      where: { id: patientId, tenantId },
+    })
+    if (!patient) {
+      res.status(404).json({ error: 'Patient not found' })
+      return
+    }
+
+    const existing = await prisma.patientRegistration.findUnique({
+      where: { patientId: patient.id },
+    })
+    if (existing) {
+      res.status(409).json({ error: 'Registration already completed' })
+      return
+    }
+
+    const regNumber = await nextRegNumber(prisma, tenantId)
+    const registration = await prisma.patientRegistration.create({
+      data: {
+        tenantId,
+        patientId: patient.id,
+        regNumber,
+        formData: form,
+        patientSignature: String(form.patientSignature ?? ''),
+        signerType: String(form.signerType ?? 'patient'),
+        kairaliRepSignature: String(form.kairaliRepSignature ?? ''),
+        signedAt: new Date(),
+        signedByUserId: null,
+      },
+    })
+
+    await prisma.patient.update({
+      where: { id: patient.id },
+      data: {
+        name: nameFromForm(form),
+        age: Number(form.ageYears) || patient.age,
+        gender: fromGender(String(form.gender ?? 'M')),
+        phone: String(form.mobile1 ?? patient.phone),
+        email: String(form.email ?? patient.email ?? ''),
+        city: String(form.city ?? patient.city ?? ''),
+        occupation: String(form.occupation ?? patient.occupation ?? ''),
+        nationality: String(form.nationality ?? patient.nationality ?? ''),
+        referralSource: referralFromForm(form),
+        purpose: purposeFromForm(form),
+      },
+    })
+
+    res.status(201).json({ registration: mapRegistration(registration) })
+  } catch (err) {
+    handleRouteError(res, err, 'portal registration')
+  }
+})
+
 router.get('/booking-fee', requireAuth, requirePatient, (_req, res) => {
   res.json(bookingFeeQuote())
 })
@@ -190,7 +369,7 @@ router.get('/availability', requireAuth, requirePatient, async (req, res) => {
     include: { registration: true },
   })
   if (!member?.registration) {
-    res.status(403).json({ error: 'Complete one-time registration at the centre before booking online' })
+    res.status(403).json({ error: 'Complete one-time registration in the patient portal before booking online' })
     return
   }
 
@@ -295,13 +474,13 @@ router.post('/appointments', requireAuth, requirePatient, async (req, res) => {
     include: { registration: true },
   })
   if (!patient?.registration) {
-    res.status(403).json({ error: 'Complete one-time registration at the centre before booking online' })
+    res.status(403).json({ error: 'Complete one-time registration in the patient portal before booking online' })
     return
   }
 
   const type = body.type ?? 'Follow-up'
-  if (type !== 'Follow-up') {
-    res.status(400).json({ error: 'Registered members can only book follow-up visits online' })
+  if (type !== 'Follow-up' && type !== 'Consultation') {
+    res.status(400).json({ error: 'Book a consultation or follow-up visit' })
     return
   }
 

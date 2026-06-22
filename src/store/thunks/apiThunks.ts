@@ -51,6 +51,19 @@ export const loginPatientPortal = createAsyncThunk<
   }
 })
 
+export const signupPatientPortal = createAsyncThunk<
+  { token: string; user: User },
+  { name: string; email: string; phone: string; password: string }
+>('auth/portalSignup', async (payload, { rejectWithValue }) => {
+  try {
+    return await api.portalSignup(payload)
+  } catch (e) {
+    const msg = errMsg(e, 'Sign-up failed')
+    toast.error(msg)
+    return rejectWithValue(msg)
+  }
+})
+
 export { fetchBootstrap } from './bootstrap'
 
 export const createPatientApi = createAsyncThunk<Patient, Omit<Patient, 'id'>>(

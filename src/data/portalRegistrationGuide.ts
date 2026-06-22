@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, FileText, Stethoscope, UserCheck } from 'lucide-react'
+import { CalendarClock, ClipboardList, FileText, Smartphone } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface OnboardingStep {
@@ -8,37 +8,32 @@ export interface OnboardingStep {
   tips?: string[]
 }
 
-export const NEW_PATIENT_STEPS: OnboardingStep[] = [
+/** Steps shown on the public login page before sign-in */
+export const PUBLIC_REGISTRATION_STEPS: OnboardingStep[] = [
   {
-    title: 'Visit the centre',
-    description: 'Walk in or call reception to schedule your first visit. Bring a valid photo ID.',
-    icon: Building2,
-    tips: ['Aadhaar or passport', 'Any prior medical reports', 'List of current medicines'],
+    title: 'Create your account',
+    description: 'Sign up with your name, mobile, email, and a password — takes under a minute.',
+    icon: Smartphone,
   },
   {
-    title: 'One-time registration',
-    description: 'Reception will complete your Kairali One-Time Registration form with you — personal details, health history, and consent.',
+    title: 'Complete one-time registration',
+    description: 'Fill in your details, health history, and consent digitally — about 15 minutes.',
     icon: ClipboardList,
-    tips: ['Takes about 15–20 minutes', 'You sign on the reception tablet or paper copy'],
-  },
-  {
-    title: 'Doctor consultation',
-    description: 'Your first appointment is a full consultation. The doctor assesses your prakriti and recommends a care plan.',
-    icon: Stethoscope,
+    tips: ['Photo ID details handy', 'List of current medicines', 'Emergency contact number'],
   },
   {
     title: 'Upload documents (optional)',
-    description: 'After registration you can upload Aadhaar, PAN, and prescriptions from the Documents tab in this portal.',
+    description: 'Add Aadhaar, PAN, or prescriptions from the Documents tab anytime.',
     icon: FileText,
   },
   {
-    title: 'Book follow-ups online',
-    description: 'Once registered, sign in here anytime to check the calendar and book follow-up visits.',
-    icon: UserCheck,
+    title: 'Book your visit online',
+    description: 'Once registered, book your consultation or follow-up from My calendar.',
+    icon: CalendarClock,
   },
 ]
 
-export const BRING_CHECKLIST = [
+export const REGISTRATION_CHECKLIST = [
   'Photo ID (Aadhaar / passport)',
   'Previous prescriptions or lab reports',
   'Insurance details (if any)',

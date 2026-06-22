@@ -144,15 +144,27 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  portalSignup: (data: { name: string; email: string; phone: string; password: string }) =>
+    request<{ token: string; user: User & { role: 'patient'; patientId: string; email: string } }>('/portal/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   portalMe: (token: string) =>
     request<{
-      patient: { name: string; phone: string; email: string; balance: number; prakriti: string; purpose: string }
+      patient: { name: string; phone: string; email: string; city: string; balance: number; prakriti: string; purpose: string }
       clinic: string
       isRegistered: boolean
       clinicContact: { phone: string; email: string; address: string }
       registration: import('@/types/registration').PatientRegistrationRecord | null
       careDoctor: string | null
     }>('/portal/me', {}, token),
+
+  portalSubmitRegistration: (token: string, formData: import('@/types/registration').RegistrationForm) =>
+    request<{ registration: import('@/types/registration').PatientRegistrationRecord }>('/portal/registration', {
+      method: 'POST',
+      body: JSON.stringify({ formData }),
+    }, token),
 
   portalAppointments: (token: string) =>
     request<import('@/types/entities').Appointment[]>('/portal/appointments', {}, token),

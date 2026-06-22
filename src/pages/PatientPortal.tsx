@@ -3,7 +3,7 @@ import { CalendarClock, ClipboardList, FileText, HeartPulse, LogOut, Receipt } f
 import type { User } from '@/types/entities'
 import PatientDocuments from '../components/PatientDocuments'
 import PortalBooking from '../components/portal/PortalBooking'
-import PortalRegistrationOnboarding from '../components/portal/PortalRegistrationOnboarding'
+import PortalSelfRegistration from '../components/portal/PortalSelfRegistration'
 import { api, ApiError } from '@/lib/api'
 import { formatShortDate } from '@/lib/dates'
 import { EmptyState, initials } from '@/lib/ui'
@@ -23,7 +23,7 @@ export default function PatientPortal({ user, token, onLogout }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [profile, setProfile] = useState<{
-    patient: { name: string; phone: string; email: string; balance: number }
+    patient: { name: string; phone: string; email: string; city: string; balance: number }
     clinic: string
     isRegistered: boolean
     clinicContact: { phone: string; email: string; address: string }
@@ -84,7 +84,7 @@ export default function PatientPortal({ user, token, onLogout }: Props) {
   const nav = useMemo(() => {
     if (!isRegistered) {
       return [
-        { id: 'appointments' as PortalPage, label: 'One-Time Registration', shortLabel: 'Register', Icon: ClipboardList },
+        { id: 'appointments' as PortalPage, label: 'Register online', shortLabel: 'Register', Icon: ClipboardList },
         { id: 'documents' as PortalPage, label: 'My documents', shortLabel: 'Docs', Icon: FileText },
       ]
     }
@@ -174,11 +174,10 @@ export default function PatientPortal({ user, token, onLogout }: Props) {
             onBooked={reload}
           />
         ) : (
-          <PortalRegistrationOnboarding
-            patientName={profile.patient.name}
-            clinic={profile.clinic}
-            contact={profile.clinicContact}
-            onOpenDocuments={() => setPage('documents')}
+          <PortalSelfRegistration
+            token={token}
+            patient={profile.patient}
+            onComplete={reload}
           />
         )
       )}

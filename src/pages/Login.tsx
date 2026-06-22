@@ -4,9 +4,8 @@ import type { Role } from '../App'
 import Logo from '../components/Logo'
 import PortalRegistrationOnboarding from '../components/portal/PortalRegistrationOnboarding'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
-import { loginPatientPortal, loginUser } from '../store/thunks/apiThunks'
+import { loginPatientPortal, loginUser, signupPatientPortal } from '../store/thunks/apiThunks'
 import { clearError } from '../store/slices/authSlice'
-import { DEFAULT_CLINIC_SETTINGS } from '@/types/clinic'
 
 const STAFF_DEMO = [
   { role: 'admin' as Role, label: 'Admin', email: 'admin@kairali.com' },
@@ -18,7 +17,7 @@ const STAFF_DEMO = [
 const DEMO_PASSWORD = '1234'
 
 type LoginMode = 'staff' | 'patient'
-type PatientView = 'signin' | 'registration'
+type PatientView = 'signin' | 'registration' | 'signup'
 
 export default function Login() {
   const dispatch = useAppDispatch()
@@ -27,6 +26,11 @@ export default function Login() {
   const [patientView, setPatientView] = useState<PatientView>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [signupName, setSignupName] = useState('')
+  const [signupEmail, setSignupEmail] = useState('')
+  const [signupPhone, setSignupPhone] = useState('')
+  const [signupPassword, setSignupPassword] = useState('')
+  const [signupConfirm, setSignupConfirm] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,19 +41,43 @@ export default function Login() {
     }
   }
 
+  const handleSignup = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (signupPassword !== signupConfirm) {
+      dispatch(clearError())
+      return
+    }
+    dispatch(signupPatientPortal({
+      name: signupName,
+      email: signupEmail,
+      phone: signupPhone,
+      password: signupPassword,
+    }))
+  }
+
   const switchMode = (next: LoginMode) => {
     setMode(next)
     setPatientView('signin')
     dispatch(clearError())
   }
 
+  const openPatientView = (view: PatientView) => {
+    setPatientView(view)
+    dispatch(clearError())
+  }
+
   const fillDemo = (demoEmail: string) => {
     setEmail(demoEmail)
     setPassword(DEMO_PASSWORD)
+    setPatientView('signin')
     dispatch(clearError())
   }
 
   const showRegistrationGuide = mode === 'patient' && patientView === 'registration'
+  const showSignup = mode === 'patient' && patientView === 'signup'
+  const wideLayout = showRegistrationGuide
+
+  const passwordMismatch = showSignup && signupConfirm.length > 0 && signupPassword !== signupConfirm
 
   return (
     <div className="min-h-screen flex">
@@ -74,7 +102,7 @@ export default function Login() {
           initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.45, ease: 'easeOut', delay: 0.15 }}
-          className={`w-full ${showRegistrationGuide ? 'max-w-4xl xl:max-w-5xl' : 'max-w-sm'}`}
+          className={`w-full ${wideLayout ? 'max-w-4xl xl:max-w-5xl' : 'max-w-sm'}`}
         >
           <div className="lg:hidden mb-8 text-center">
             <Logo className="w-20 h-auto mx-auto mb-3" />
@@ -100,21 +128,120 @@ export default function Login() {
 
             {showRegistrationGuide ? (
               <PortalRegistrationOnboarding
-                clinic={DEFAULT_CLINIC_SETTINGS.name}
-                contact={{
-                  phone: DEFAULT_CLINIC_SETTINGS.phone,
-                  email: DEFAULT_CLINIC_SETTINGS.email,
-                  address: DEFAULT_CLINIC_SETTINGS.address,
-                }}
-                onBackToSignIn={() => setPatientView('signin')}
+                onCreateAccount={() => openPatientView('signup')}
+                onSignIn={() => openPatientView('signin')}
               />
+            ) : showSignup ? (
+              <form onSubmit={handleSignup}>
+                <button
+                  type="button"
+                  onClick={() => openPatientView('registration')}
+                  className="text-xs font-medium text-[#1B4332] hover:underline mb-4"
+                >
+                  ← Back
+                </button>
+                <h2 className="text-base font-semibold text-gray-900 mb-1">Create account</h2>
+                <p className="text-gray-500 text-xs mb-5">
+                  Sign up to complete one-time registration and book visits online.
+                </p>
+
+                <div className="space-y-3 mb-5">
+                  <div>
+                    <label className="label">Full name</label>
+                    <input
+                      className="input-field"
+                      value={signupName}
+                      onChange={e => setSignupName(e.target.value)}
+                      required
+                      autoComplete="name"
+                      placeholder="Priya Sharma"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Mobile</label>
+                    <input
+                      className="input-field"
+                      type="tel"
+                      value={signupPhone}
+                      onChange={e => setSignupPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      required
+                      autoComplete="tel"
+                      placeholder="9876543210"
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Email</label>
+                    <input
+                      className="input-field"
+                      type="email"
+                      value={signupEmail}
+                      onChange={e => setSignupEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      placeholder="you@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Password</label>
+                    <input
+                      className="input-field"
+                      type="password"
+                      value={signupPassword}
+                      onChange={e => setSignupPassword(e.target.value)}
+                      required
+                      minLength={4}
+                      autoComplete="new-password"
+                      placeholder="At least 4 characters"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Confirm password</label>
+                    <input
+                      className="input-field"
+                      type="password"
+                      value={signupConfirm}
+                      onChange={e => setSignupConfirm(e.target.value)}
+                      required
+                      minLength={4}
+                      autoComplete="new-password"
+                      placeholder="Repeat password"
+                    />
+                    {passwordMismatch && (
+                      <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                    )}
+                  </div>
+                </div>
+
+                {error && (
+                  <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">
+                    {error}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn-primary w-full"
+                  disabled={loading || passwordMismatch}
+                >
+                  {loading ? 'Creating account…' : 'Create account & continue'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openPatientView('signin')}
+                  className="w-full mt-3 py-2 text-xs font-medium text-[#1B4332] hover:underline"
+                >
+                  Already have an account? Sign in
+                </button>
+              </form>
             ) : (
               <form onSubmit={handleSubmit}>
                 <h2 className="text-base font-semibold text-gray-900 mb-1">Sign in</h2>
                 <p className="text-gray-500 text-xs mb-5">
                   {mode === 'staff'
                     ? 'Demo staff accounts use @kairali.com — password 1234'
-                    : 'Demo patient password is 1234 — or use One-Time Registration below'}
+                    : 'Returning patients sign in · new patients create an account below'}
                 </p>
 
                 <div className="rounded-lg border border-dashed border-[#1B4332]/25 bg-[#1B4332]/[0.04] p-3 mb-5 space-y-2">
@@ -148,7 +275,7 @@ export default function Login() {
                         onClick={() => fillDemo('anita@email.com')}
                         className="py-2 px-3 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"
                       >
-                        Anita — new patient (registration guide)
+                        Anita — complete registration online
                       </button>
                     </div>
                   )}
@@ -192,19 +319,20 @@ export default function Login() {
                 </button>
 
                 {mode === 'patient' && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-[11px] text-gray-500 text-center mb-3">
-                      First time at the centre?
-                    </p>
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setPatientView('registration')
-                        dispatch(clearError())
-                      }}
+                      onClick={() => openPatientView('signup')}
                       className="w-full py-2.5 rounded-lg text-sm font-medium border-2 border-[#1B4332]/20 text-[#1B4332] bg-[#1B4332]/5 hover:bg-[#1B4332]/10 transition-colors"
                     >
-                      One-Time Registration
+                      Create account
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPatientView('registration')}
+                      className="w-full py-2 text-xs font-medium text-gray-500 hover:text-[#1B4332]"
+                    >
+                      How does one-time registration work?
                     </button>
                   </div>
                 )}

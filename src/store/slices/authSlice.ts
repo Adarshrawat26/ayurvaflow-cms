@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit'
 import { REHYDRATE, type RehydrateAction } from 'redux-persist'
 import type { User } from '@/types/entities'
 import { fetchBootstrap } from '../thunks/bootstrap'
-import { loginPatientPortal, loginUser } from '../thunks/apiThunks'
+import { loginPatientPortal, loginUser, signupPatientPortal } from '../thunks/apiThunks'
 
 interface AuthState {
   user: User | null
@@ -65,6 +65,20 @@ const authSlice = createSlice({
       .addCase(loginPatientPortal.rejected, (state, action) => {
         state.loading = false
         state.error = (action.payload as string) ?? action.error.message ?? 'Login failed'
+      })
+      .addCase(signupPatientPortal.pending, state => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(signupPatientPortal.fulfilled, (state, action) => {
+        state.loading = false
+        state.token = action.payload.token
+        state.user = action.payload.user as User
+        state.dataLoaded = true
+      })
+      .addCase(signupPatientPortal.rejected, (state, action) => {
+        state.loading = false
+        state.error = (action.payload as string) ?? action.error.message ?? 'Sign-up failed'
       })
       .addCase(fetchBootstrap.pending, state => {
         state.bootstrapping = true

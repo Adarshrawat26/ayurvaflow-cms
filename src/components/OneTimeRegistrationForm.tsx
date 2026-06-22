@@ -23,6 +23,8 @@ interface Props {
   clinic: ClinicSettings
   onClose: () => void
   onSubmit: (form: RegistrationForm) => Promise<PatientRegistrationRecord>
+  onComplete?: () => void
+  layout?: 'overlay' | 'inline'
   officeMode?: boolean
   initial?: RegistrationForm
   regNumber?: string
@@ -32,6 +34,8 @@ export default function OneTimeRegistrationForm({
   clinic,
   onClose,
   onSubmit,
+  onComplete,
+  layout = 'overlay',
   officeMode = false,
   initial,
   regNumber,
@@ -99,8 +103,34 @@ export default function OneTimeRegistrationForm({
   }
 
   const centreLine = `${clinic.name.toUpperCase()} | ${clinic.address} | T: ${clinic.phone} | E: ${clinic.email}`
+  const isInline = layout === 'inline'
 
   if (saved) {
+    const finish = () => {
+      if (onComplete) onComplete()
+      else onClose()
+    }
+    if (isInline) {
+      return (
+        <div className="card p-6 md:p-8 text-center">
+          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+            <Check size={22} className="text-green-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900 mb-1">Registration Complete</h3>
+          <p className="text-sm text-gray-500 mb-1">{fullNameFromForm(saved.formData)}</p>
+          <p className="text-xs text-[#1B4332] font-medium mb-4">{saved.regNumber}</p>
+          <p className="text-xs text-gray-500 mb-4">You can now book visits from My calendar.</p>
+          <button
+            type="button"
+            className="btn-primary w-full flex items-center justify-center gap-2 mb-2"
+            onClick={() => printRegistration(saved, clinic)}
+          >
+            <Download size={15} /> Download / Print Form
+          </button>
+          <button type="button" className="btn-outline w-full" onClick={finish}>Continue to portal</button>
+        </div>
+      )
+    }
     return (
       <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -125,28 +155,32 @@ export default function OneTimeRegistrationForm({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-50">
+    <div className={isInline ? 'rounded-xl border border-gray-200 bg-white overflow-hidden' : 'fixed inset-0 z-50 flex flex-col bg-gray-50'}>
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shrink-0">
         <div>
           <h2 className="text-sm font-semibold text-[#1B4332]">One Time Registration</h2>
-          <p className="text-[10px] text-gray-400">Kairali Ayurvedic Centre · {STEPS[step]}</p>
+          <p className="text-[10px] text-gray-400">{clinic.name} · {STEPS[step]}</p>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setShowGuide(true)}
-            className="p-2 text-gray-400 hover:text-[#1B4332] rounded-lg hover:bg-gray-100"
-            aria-label="Registration guide"
-          >
-            <HelpCircle size={18} />
-          </button>
-          <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
-            <X size={18} />
-          </button>
+          {!isInline && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowGuide(true)}
+                className="p-2 text-gray-400 hover:text-[#1B4332] rounded-lg hover:bg-gray-100"
+                aria-label="Registration guide"
+              >
+                <HelpCircle size={18} />
+              </button>
+              <button type="button" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                <X size={18} />
+              </button>
+            </>
+          )}
         </div>
       </header>
 
-      <RegistrationGuideModal open={showGuide} onClose={() => setShowGuide(false)} />
+      {!isInline && <RegistrationGuideModal open={showGuide} onClose={() => setShowGuide(false)} />}
 
       <div className="px-4 py-3 bg-white border-b border-gray-100 shrink-0">
         <div className="flex gap-1 max-w-3xl mx-auto">
@@ -159,7 +193,7 @@ export default function OneTimeRegistrationForm({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+      <div className={isInline ? 'max-h-[70vh] overflow-y-auto p-4 md:p-6' : 'flex-1 overflow-y-auto p-4 lg:p-6'}>
         <div className="max-w-3xl mx-auto space-y-4">
           {step === 0 && (
             <>
@@ -338,8 +372,12 @@ export default function OneTimeRegistrationForm({
               <div className="card p-4 space-y-4">
                 <SignaturePad label="Patient / Responsible Person Signature *" value={form.patientSignature} onChange={v => patch({ patientSignature: v })} />
                 {errors.patientSignature && <p className="text-xs text-red-500">{errors.patientSignature}</p>}
-                <SignaturePad label="Kairali Representative Signature (optional)" value={form.kairaliRepSignature} onChange={v => patch({ kairaliRepSignature: v })} />
-                <Field label="Representative Comments" value={form.kairaliRepComments} onChange={v => patch({ kairaliRepComments: v })} />
+                {!isInline && (
+                  <>
+                    <SignaturePad label="Kairali Representative Signature (optional)" value={form.kairaliRepSignature} onChange={v => patch({ kairaliRepSignature: v })} />
+                    <Field label="Representative Comments" value={form.kairaliRepComments} onChange={v => patch({ kairaliRepComments: v })} />
+                  </>
+                )}
               </div>
             </div>
           )}
