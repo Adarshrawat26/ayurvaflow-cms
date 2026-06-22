@@ -8,14 +8,14 @@ import { loginPatientPortal, loginUser } from '../store/thunks/apiThunks'
 import { clearError } from '../store/slices/authSlice'
 import { DEFAULT_CLINIC_SETTINGS } from '@/types/clinic'
 
-const IS_DEV = import.meta.env.DEV
-
-const DEV_ACCOUNTS: { role: Role; label: string; email: string }[] = [
-  { role: 'admin', label: 'Admin', email: 'admin@kairali.com' },
-  { role: 'receptionist', label: 'Receptionist', email: 'reception@kairali.com' },
-  { role: 'doctor', label: 'Doctor', email: 'doctor@kairali.com' },
-  { role: 'therapist', label: 'Therapist', email: 'therapist@kairali.com' },
+const STAFF_DEMO = [
+  { role: 'admin' as Role, label: 'Admin', email: 'admin@kairali.com' },
+  { role: 'receptionist' as Role, label: 'Reception', email: 'reception@kairali.com' },
+  { role: 'doctor' as Role, label: 'Doctor', email: 'doctor@kairali.com' },
+  { role: 'therapist' as Role, label: 'Therapist', email: 'therapist@kairali.com' },
 ]
+
+const DEMO_PASSWORD = '1234'
 
 type LoginMode = 'staff' | 'patient'
 type PatientView = 'signin' | 'registration'
@@ -40,6 +40,12 @@ export default function Login() {
   const switchMode = (next: LoginMode) => {
     setMode(next)
     setPatientView('signin')
+    dispatch(clearError())
+  }
+
+  const fillDemo = (demoEmail: string) => {
+    setEmail(demoEmail)
+    setPassword(DEMO_PASSWORD)
     dispatch(clearError())
   }
 
@@ -107,44 +113,49 @@ export default function Login() {
                 <h2 className="text-base font-semibold text-gray-900 mb-1">Sign in</h2>
                 <p className="text-gray-500 text-xs mb-5">
                   {mode === 'staff'
-                    ? 'Enter your staff credentials to continue'
-                    : 'Registered members sign in to book follow-ups and view records'}
+                    ? 'Demo staff accounts use @kairali.com — password 1234'
+                    : 'Demo patient password is 1234 — or use One-Time Registration below'}
                 </p>
 
-                {IS_DEV && mode === 'staff' && (
-                  <div className="grid grid-cols-2 gap-2 mb-5">
-                    {DEV_ACCOUNTS.map(account => (
+                <div className="rounded-lg border border-dashed border-[#1B4332]/25 bg-[#1B4332]/[0.04] p-3 mb-5 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#1B4332]">
+                    Demo logins · password {DEMO_PASSWORD}
+                  </p>
+                  {mode === 'staff' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {STAFF_DEMO.map(account => (
+                        <button
+                          key={account.email}
+                          type="button"
+                          onClick={() => fillDemo(account.email)}
+                          className="py-2 px-2.5 rounded-lg text-[11px] font-medium border border-gray-200 bg-white text-gray-600 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"
+                        >
+                          {account.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2">
                       <button
-                        key={account.role}
                         type="button"
-                        onClick={() => {
-                          setEmail(account.email)
-                          setPassword('1234')
-                          dispatch(clearError())
-                        }}
-                        className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors"
+                        onClick={() => fillDemo('priya@email.com')}
+                        className="py-2 px-3 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"
                       >
-                        {account.label}
+                        Priya — registered member
                       </button>
-                    ))}
-                  </div>
-                )}
-
-                {IS_DEV && mode === 'patient' && (
-                  <div className="grid grid-cols-1 gap-2 mb-5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmail('priya@email.com')
-                        setPassword('1234')
-                        dispatch(clearError())
-                      }}
-                      className="py-2 px-3 rounded-lg text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"
-                    >
-                      Registered member — Priya (your calendar only)
-                    </button>
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        onClick={() => fillDemo('anita@email.com')}
+                        className="py-2 px-3 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-600 hover:border-[#1B4332] hover:text-[#1B4332] transition-colors text-left"
+                      >
+                        Anita — new patient (registration guide)
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-gray-400">
+                    Old @ayurvaflow.com logins no longer work after the demo reset.
+                  </p>
+                </div>
 
                 <div className="space-y-3 mb-5">
                   <div>
@@ -156,7 +167,7 @@ export default function Login() {
                       onChange={e => setEmail(e.target.value)}
                       required
                       autoComplete="email"
-                      placeholder={mode === 'staff' ? 'you@clinic.com' : 'you@email.com'}
+                      placeholder={mode === 'staff' ? 'admin@kairali.com' : 'priya@email.com'}
                     />
                   </div>
                   <div>
@@ -168,7 +179,7 @@ export default function Login() {
                       onChange={e => setPassword(e.target.value)}
                       required
                       autoComplete="current-password"
-                      placeholder="••••••••"
+                      placeholder="1234"
                     />
                   </div>
                 </div>

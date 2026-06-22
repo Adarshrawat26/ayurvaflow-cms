@@ -35,11 +35,25 @@ const migrations = {
     if (!isValidPersistedState(state)) return undefined as PersistedState
     return state
   },
+  3: (state: PersistedState): PersistedState => {
+    if (!isValidPersistedState(state)) return undefined as PersistedState
+    return {
+      ...state,
+      auth: {
+        user: null,
+        token: null,
+        loading: false,
+        bootstrapping: false,
+        dataLoaded: false,
+        error: null,
+      },
+    } as PersistedState
+  },
 }
 
 const persistConfig = {
   key: 'ayurvaflow-cms',
-  version: 2,
+  version: 3,
   storage,
   whitelist: ['auth'],
   migrate: createMigrate(migrations, { debug: false }),
