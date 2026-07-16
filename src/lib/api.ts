@@ -220,4 +220,7 @@ export const api = {
 
   portalDeleteDocument: (token: string, docId: string) =>
     request(`/portal/documents/${docId}`, { method: 'DELETE' }, token),
+
+  getSlots: (token: string, doctor: string, date: string) =>
+    request<{ available: string[] }>(`/slots?doctor=${encodeURIComponent(doctor)}&date=${encodeURIComponent(date)}`, {}, token),
 }

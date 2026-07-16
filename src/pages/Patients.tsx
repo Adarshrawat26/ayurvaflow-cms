@@ -25,6 +25,8 @@ import type { RegistrationForm } from '../types/registration'
 import { fullNameFromForm, hearAboutLabel, purposeLabel } from '../types/registration'
 import PatientTimeline from '../features/patients/components/PatientTimeline'
 import MedAllergyStrip from '../features/patients/components/MedAllergyStrip'
+import VitalsChart from '../features/patients/components/VitalsChart'
+import ConsentAuditTab from '../features/patients/components/ConsentAuditTab'
 
 export default function Patients(_props: { onNavigate: (p: Page) => void; user?: unknown }) {
   const dispatch = useAppDispatch()
@@ -35,7 +37,7 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
   const [selected, setSelected] = useState<Patient | null>(null)
   const [showRegistration, setShowRegistration] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
-  const [tab, setTab] = useState<'overview' | 'history' | 'registration' | 'documents'>('overview')
+  const [tab, setTab] = useState<'overview' | 'history' | 'registration' | 'documents' | 'consent'>('overview')
   const [showEdit, setShowEdit] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', age: '', gender: 'M', phone: '', email: '', city: '', occupation: '', nationality: '', prakriti: '', purpose: '', referral: '', status: 'active' as Patient['status'] })
   const [officeForm, setOfficeForm] = useState({ diagnosis: '', presentComplaints: '', treatmentPrescribed: '', doctorSignature: '' })
@@ -178,7 +180,7 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
             </div>
           </div>
           <div className="flex gap-2 mt-4 border-b border-gray-100 overflow-x-auto">
-            {(['overview', 'registration', 'documents', 'history'] as const).map(t => (
+            {(['overview', 'registration', 'documents', 'history', 'consent'] as const).map(t => (
               <button
                 key={t}
                 onClick={() => {
@@ -187,7 +189,7 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
                 }}
                 className={`px-3 py-1.5 text-sm font-medium border-b-2 transition-colors capitalize whitespace-nowrap ${tab === t ? 'border-[#1B4332] text-[#1B4332]' : 'border-transparent text-gray-500'}`}
               >
-                {t === 'registration' ? 'Registration Form' : t === 'documents' ? 'Documents / KYC' : t}
+                {t === 'registration' ? 'Registration Form' : t === 'documents' ? 'Documents / KYC' : t === 'consent' ? 'Consent Audit' : t}
               </button>
             ))}
           </div>
@@ -274,6 +276,12 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
             </div>
           )}
 
+          {tab === 'consent' && (
+            <div className="mt-4">
+              <ConsentAuditTab registration={registration} />
+            </div>
+          )}
+
           {tab === 'history' && (
             <div className="mt-4">
               {!history || history.consultations.length === 0 ? (
@@ -283,6 +291,13 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
                   consultations={history.consultations}
                   patientName={selected.name}
                 />
+              )}
+              {/* F7: Vitals sparkline chart */}
+              {history && history.consultations.length >= 2 && (
+                <div className="mt-5 card p-4">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Vitals Trend</div>
+                  <VitalsChart consultations={history.consultations} />
+                </div>
               )}
               {history && (history.appointments.length > 0 || history.treatments.length > 0 || history.invoices.length > 0) && (
                 <div className="mt-4 space-y-4 text-sm">

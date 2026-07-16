@@ -64,6 +64,35 @@ router.get('/setup-status', async (_req, res) => {
   }
 })
 
+// ─── Slot availability ────────────────────────────────────────────────────────
+
+router.get('/slots', requireAuth, requireStaff, async (req, res) => {
+  const { filterAvailableSlots, generateSlotTimes } = await import('../lib/slots.js')
+  const tenantId = req.auth!.tenantId
+  const doctor = typeof req.query.doctor === 'string' ? req.query.doctor : ''
+  const date   = typeof req.query.date   === 'string' ? req.query.date   : ''
+  if (!doctor || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    res.status(400).json({ error: 'doctor and date (YYYY-MM-DD) are required' })
+    return
+  }
+  const day     = new Date(date)
+  const nextDay = new Date(day); nextDay.setDate(nextDay.getDate() + 1)
+  const booked  = await prisma.appointment.findMany({
+    where: {
+      tenantId,
+      doctorName: doctor,
+      date: { gte: day, lt: nextDay },
+      status: { notIn: ['NO_SHOW', 'CANCELLED'] },
+    },
+    select: { time: true, duration: true },
+  })
+  // Generate all slots for clinic hours (08:00 – 20:00), 30-min interval
+  const allSlots = generateSlotTimes('08:00', '20:00', 45, 30)
+  const available = filterAvailableSlots(allSlots, booked, 45, date)
+  res.json({ date, doctor, available })
+})
+
+
 function parseClinicSettings(tenant: { name: string; settings: unknown }) {
   const s = (tenant.settings ?? {}) as Record<string, string>
   return {

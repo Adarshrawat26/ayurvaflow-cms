@@ -21,6 +21,7 @@ import { initials } from '@/lib/ui'
 import ApptCard from '../components/ApptCard'
 import ModalShell from '../components/ModalShell'
 import Swipeable from '../components/Swipeable'
+import SlotPicker from '../features/appointments/components/SlotPicker'
 
 type DoctorLike = { id: string; name: string; specialization: string }
 type Appt = Appointment
@@ -932,14 +933,15 @@ export default function Appointments({ doctors: doctorsProp }: { onNavigate?: (p
                     onChange={e => setForm({ ...form, date: e.target.value })}
                   />
                 </div>
-                <div>
-                  <label className="label">Time</label>
-                  <input
-                    className={`input-field ${formErrors.time ? 'border-red-400' : ''}`}
-                    type="time"
+                <div className="col-span-2">
+                  <label className="label">Time — available slots</label>
+                  <SlotPicker
+                    doctor={form.doctor}
+                    date={form.date}
                     value={form.time}
-                    onChange={e => setForm({ ...form, time: e.target.value })}
+                    onChange={time => setForm(f => ({ ...f, time }))}
                   />
+                  {formErrors.time && <p className="text-xs text-red-500 mt-1">{formErrors.time}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">

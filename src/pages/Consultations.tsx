@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Save, Sparkles, Wand2 } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Save, Sparkles, Wand2 } from 'lucide-react'
 import type { Page } from '../App'
 import type { Appointment } from '../types/entities'
 import { THERAPIES, PRAKRITI_TYPES, CONDITIONS } from '../data/mockData'
@@ -15,6 +15,7 @@ import {
 } from '../data/consultationSuggestions'
 import SuggestionChips from '../components/SuggestionChips'
 import VitalsEntry from '../features/consultations/components/VitalsEntry'
+import { useSOAPDraft, clearDraft } from '../features/consultations/hooks/useSOAPDraft'
 
 const EMPTY_FORM = {
   // S — Subjective
@@ -43,6 +44,13 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
   const [tab, setTab] = useState<'S' | 'O' | 'A' | 'P'>('S')
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+
+  // F2: SOAP draft auto-save
+  const { hasDraft, draftSavedAt, recoverDraft, discardDraft } = useSOAPDraft(
+    selected?.id ?? null,
+    form,
+    setForm,
+  )
 
   const prakritiSuggestions = useMemo(() => getPrakritiSuggestions(form.prakriti), [form.prakriti])
   const conditionPlan = useMemo(() => getConditionPlan(form.condition), [form.condition])
@@ -136,6 +144,7 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
       ...form,
       createdAt: new Date().toISOString(),
     }))
+    clearDraft(selected.id)  // F2: clear draft on successful save
     setSaved(true)
   }
 
@@ -183,6 +192,18 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
                 <div>{patient?.nationality}</div>
               </div>
             </div>
+
+            {/* F2: Draft recovery banner */}
+            {hasDraft && (
+              <div className="flex items-center gap-3 px-3 py-2.5 mb-4 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-800">
+                <RefreshCw size={13} className="shrink-0" />
+                <span className="flex-1">
+                  Unsaved draft found{draftSavedAt ? ` · saved ${new Date(draftSavedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}.
+                </span>
+                <button type="button" onClick={recoverDraft} className="font-semibold underline underline-offset-2 hover:text-amber-900">Recover</button>
+                <button type="button" onClick={discardDraft} className="text-amber-500 hover:text-amber-700 ml-1">Discard</button>
+              </div>
+            )}
 
             {/* Smart insight */}
             <div className="flex items-start gap-2.5 text-xs bg-[#1B4332]/[0.04] border border-[#1B4332]/15 rounded-lg px-3 py-2.5 mb-4">

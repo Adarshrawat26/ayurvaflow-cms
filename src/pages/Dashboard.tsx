@@ -12,10 +12,12 @@ import {
   selectOutstandingInvoices,
   selectPatients,
   selectTodayAppointments,
+  selectAppointments,
 } from '../store/selectors'
 import { ConditionChart, ReferralChart, RevenueBarChart } from '../components/charts/DashboardCharts'
 import ClinicalAlerts from '../features/dashboard/alerts/ClinicalAlerts'
 import PrakritiChart from '../features/dashboard/charts/PrakritiChart'
+import TodaySchedule from '../features/dashboard/components/TodaySchedule'
 
 type DoctorLike = { id: string; name: string; specialization: string; patients: number }
 
@@ -42,6 +44,7 @@ export default function Dashboard({ onNavigate, user, doctors: doctorsProp }: { 
   const patients = useAppSelector(selectPatients)
   const invoices = useAppSelector(selectInvoices)
   const today = useAppSelector(selectTodayAppointments)
+  const allAppts = useAppSelector(selectAppointments)
   const activeT = useAppSelector(selectActiveTreatments)
   const outstanding = useAppSelector(selectOutstandingInvoices)
   const billing = useAppSelector(selectBillingSummary)
@@ -57,11 +60,64 @@ export default function Dashboard({ onNavigate, user, doctors: doctorsProp }: { 
   const conditions = conditionBreakdown(patients)
   const maxCond = conditions[0]?.count ?? 1
 
+  // ── F5: Real trend computation — this month vs last month ─────────────────
+  const now = new Date()
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const lastMonth = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth() + 1).padStart(2, '0')}`
+
+  const patientsThisMonth = patients.filter(p => p.createdAt?.startsWith(thisMonth)).length
+  const patientsLastMonth = patients.filter(p => p.createdAt?.startsWith(lastMonth)).length
+  const patientGrowth = patientsLastMonth > 0
+    ? (((patientsThisMonth - patientsLastMonth) / patientsLastMonth) * 100).toFixed(1)
+    : patientsThisMonth > 0 ? '+∞' : '0.0'
+
+  const apptThisMonth = allAppts.filter(a => a.date?.startsWith(thisMonth)).length
+  const apptLastMonth = allAppts.filter(a => a.date?.startsWith(lastMonth)).length
+  const apptGrowth = apptLastMonth > 0
+    ? (((apptThisMonth - apptLastMonth) / apptLastMonth) * 100).toFixed(1)
+    : apptThisMonth > 0 ? '+∞' : '0.0'
+
+  const totalSessions = activeT.reduce((a, t) => a + t.completedSessions, 0)
+  const endingSoon = activeT.filter(t => {
+    const end = new Date(t.endDate)
+    const daysLeft = Math.ceil((end.getTime() - now.getTime()) / 86400000)
+    return daysLeft >= 0 && daysLeft <= 7
+  }).length
+
   const kpis = [
-    { label: 'Total Patients',        value: patients.length,  sub: '+3 registered this week',                    trend: 'up',      trendVal: '↑ 3.7%',         icon: Users,       iconBg: 'bg-blue-50',         iconColor: 'text-blue-600',   page: 'patients' as Page },
-    { label: "Today's Appointments",  value: today.length,     sub: `${today.filter(a => a.status === 'in_progress').length} in progress now`, trend: 'up', trendVal: '↑ On schedule', icon: CalendarDays, iconBg: 'bg-amber-50', iconColor: 'text-amber-600', page: 'appointments' as Page },
-    { label: 'Monthly Revenue',       value: fmt(currRev),     sub: `${revGrowth}% vs last month`,                trend: Number(revGrowth) >= 0 ? 'up' : 'down', trendVal: `↑ ${revGrowth}%`, icon: IndianRupee, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', page: 'billing' as Page },
-    { label: 'Active Treatments',     value: activeT.length,   sub: '1 programme ending this week',               trend: 'neutral', trendVal: `${activeT.reduce((a, t) => a + t.completedSessions, 0)} sessions done`, icon: Leaf, iconBg: 'bg-[#1B4332]/10', iconColor: 'text-[#1B4332]', page: 'treatments' as Page },
+    {
+      label: 'Total Patients',
+      value: patients.length,
+      sub: patientsThisMonth > 0 ? `+${patientsThisMonth} this month` : 'No new registrations this month',
+      trend: Number(patientGrowth) >= 0 ? 'up' : 'down',
+      trendVal: `${Number(patientGrowth) >= 0 ? '↑' : '↓'} ${Math.abs(Number(patientGrowth)).toFixed(1)}%`,
+      icon: Users, iconBg: 'bg-blue-50', iconColor: 'text-blue-600', page: 'patients' as Page,
+    },
+    {
+      label: "Today's Appointments",
+      value: today.length,
+      sub: `${today.filter(a => a.status === 'in_progress').length} in progress · ${today.filter(a => a.status === 'completed').length} done`,
+      trend: Number(apptGrowth) >= 0 ? 'up' : 'down',
+      trendVal: `${Number(apptGrowth) >= 0 ? '↑' : '↓'} ${Math.abs(Number(apptGrowth)).toFixed(1)}% vs last month`,
+      icon: CalendarDays, iconBg: 'bg-amber-50', iconColor: 'text-amber-600', page: 'appointments' as Page,
+    },
+    {
+      label: 'Monthly Revenue',
+      value: fmt(currRev),
+      sub: `${revGrowth}% vs last month`,
+      trend: Number(revGrowth) >= 0 ? 'up' : 'down',
+      trendVal: `${Number(revGrowth) >= 0 ? '↑' : '↓'} ${Math.abs(Number(revGrowth)).toFixed(1)}%`,
+      icon: IndianRupee, iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', page: 'billing' as Page,
+    },
+    {
+      label: 'Active Treatments',
+      value: activeT.length,
+      sub: endingSoon > 0 ? `${endingSoon} programme${endingSoon > 1 ? 's' : ''} ending this week` : `${totalSessions} sessions done total`,
+      trend: 'neutral' as const,
+      trendVal: `${totalSessions} sessions done`,
+      icon: Leaf, iconBg: 'bg-[#1B4332]/10', iconColor: 'text-[#1B4332]', page: 'treatments' as Page,
+    },
   ]
 
   return (
@@ -92,6 +148,9 @@ export default function Dashboard({ onNavigate, user, doctors: doctorsProp }: { 
         onDismiss={id => setDismissed(d => [...d, id])}
         dismissed={dismissed}
       />
+
+      {/* F9: Today's Schedule widget */}
+      <TodaySchedule onNavigate={onNavigate} />
 
       {/* KPI cards — staggered */}
       <motion.div
