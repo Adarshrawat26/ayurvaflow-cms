@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Gauge, UserRound, CalendarClock, HeartPulse, ClipboardPlus,
-  Receipt, SlidersHorizontal, LogOut,
+  Receipt, SlidersHorizontal, LogOut, BarChart2,
 } from 'lucide-react'
 import type { User, Page } from '../App'
 import { useAppSelector } from '../store/hooks'
@@ -16,6 +16,7 @@ import Treatments from './Treatments'
 import Consultations from './Consultations'
 import Billing from './Billing'
 import SettingsPage from './Settings'
+import Reports from '../features/reports/Reports'
 
 const NAV_ICONS: Record<Page, React.ElementType> = {
   dashboard: Gauge,
@@ -24,7 +25,7 @@ const NAV_ICONS: Record<Page, React.ElementType> = {
   treatments: HeartPulse,
   consultations: ClipboardPlus,
   billing: Receipt,
-  reports: Gauge,
+  reports: BarChart2,
   settings: SlidersHorizontal,
 }
 
@@ -77,7 +78,8 @@ export default function Layout({ user, onLogout }: Props) {
       case 'treatments':    return <Treatments {...sharedProps} />
       case 'consultations': return <Consultations {...sharedProps} />
       case 'billing':       return <Billing {...sharedProps} />
-      case 'settings': return <SettingsPage {...sharedProps} />
+      case 'reports':       return <Reports />
+      case 'settings':      return <SettingsPage {...sharedProps} />
       default: return null
     }
   }

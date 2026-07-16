@@ -11,11 +11,11 @@ export const ALL_NAV: { id: Page; label: string }[] = [
 ]
 
 const ROLE_PAGES: Record<Role, Page[]> = {
-  admin: ['dashboard', 'patients', 'appointments', 'treatments', 'consultations', 'billing', 'settings'],
+  admin:        ['dashboard', 'patients', 'appointments', 'treatments', 'consultations', 'billing', 'reports', 'settings'],
   receptionist: ['dashboard', 'patients', 'appointments', 'billing'],
-  doctor: ['dashboard', 'patients', 'appointments', 'consultations', 'treatments'],
-  therapist: ['dashboard', 'appointments', 'treatments'],
-  patient: [],
+  doctor:       ['dashboard', 'patients', 'appointments', 'consultations', 'treatments', 'reports'],
+  therapist:    ['dashboard', 'appointments', 'treatments'],
+  patient:      [],
 }
 
 export function pagesForRole(role: Role): Page[] {

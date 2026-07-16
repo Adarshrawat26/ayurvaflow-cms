@@ -73,6 +73,8 @@ const rootReducer = combineReducers({
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
+import { auditMiddleware } from './middleware/auditMiddleware'
+
 export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
@@ -80,8 +82,9 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }),
+    }).concat(auditMiddleware),
 })
+
 
 export const persistor = persistStore(store)
 

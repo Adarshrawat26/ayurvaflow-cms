@@ -1,6 +1,7 @@
 export type Role = 'admin' | 'receptionist' | 'doctor' | 'therapist' | 'patient'
 export type StaffRole = Exclude<Role, 'patient'>
 export type Page = 'dashboard' | 'patients' | 'appointments' | 'treatments' | 'consultations' | 'billing' | 'reports' | 'settings'
+export type { ConsultationRecord as Consultation }
 
 export interface User {
   name: string
@@ -38,6 +39,8 @@ export interface Patient {
   balance: number
   occupation: string
   nationality: string
+  /** ISO timestamp when the patient record was created — used for acquisition reports */
+  createdAt: string
 }
 
 export type AppointmentStatus = 'scheduled' | 'arrived' | 'in_progress' | 'completed' | 'no_show' | 'cancelled'
@@ -95,17 +98,26 @@ export interface ConsultationRecord {
   patientId: string
   patient: string
   doctor: string
+  // ── S — Subjective ─────────────────────────────────────
   complaints: string
   duration: string
   history: string
   allergies: string
+  // ── O — Objective (Ashtavidha Pariksha) ───────────────
   pulse: string
   tongue: string
   eyes: string
   skin: string
+  // ── O — Structured Vitals (numeric) ───────────────────
+  pulse_rate?: string
+  bp_systolic?: string
+  bp_diastolic?: string
+  weight_kg?: string
+  // ── A — Assessment ────────────────────────────────────
   prakriti: string
   vikruti: string
   condition: string
+  // ── P — Plan ──────────────────────────────────────────
   therapy: string
   sessions: string
   medicines: string
@@ -116,19 +128,28 @@ export interface ConsultationRecord {
 }
 
 export interface ConsultationForm {
+  // S — Subjective
   complaints: string
   duration: string
   history: string
   allergies: string
+  // O — Objective (Ashtavidha Pariksha)
   pulse: string
   tongue: string
   eyes: string
   skin: string
+  // O — Structured Vitals
+  pulse_rate: string
+  bp_systolic: string
+  bp_diastolic: string
+  weight_kg: string
+  // A — Assessment
   prakriti: string
   vikruti: string
+  condition: string
+  // P — Plan
   therapy: string
   sessions: string
-  condition: string
   medicines: string
   diet: string
   lifestyle: string

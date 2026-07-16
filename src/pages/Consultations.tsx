@@ -14,11 +14,19 @@ import {
   mergeChipValue,
 } from '../data/consultationSuggestions'
 import SuggestionChips from '../components/SuggestionChips'
+import VitalsEntry from '../features/consultations/components/VitalsEntry'
 
 const EMPTY_FORM = {
+  // S — Subjective
   complaints: '', duration: '', history: '', allergies: '',
-  pulse: '', tongue: '', eyes: '', skin: '', prakriti: 'Vata', vikruti: '',
-  therapy: 'Abhyangam', sessions: '14', condition: 'General Wellness',
+  // O — Objective Ashtavidha
+  pulse: '', tongue: '', eyes: '', skin: '',
+  // O — Structured Vitals
+  pulse_rate: '', bp_systolic: '', bp_diastolic: '', weight_kg: '',
+  // A — Assessment
+  prakriti: 'Vata', vikruti: '', condition: 'General Wellness',
+  // P — Plan
+  therapy: 'Abhyangam', sessions: '14',
   medicines: '', diet: '', lifestyle: '', followUp: '4 weeks',
 }
 
@@ -32,7 +40,7 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
   const patients = useAppSelector(selectPatients)
   const allConsultations = useAppSelector(selectConsultations)
   const [selected, setSelected] = useState<Appointment | null>(null)
-  const [tab, setTab] = useState<'complaints' | 'assessment' | 'plan'>('complaints')
+  const [tab, setTab] = useState<'S' | 'O' | 'A' | 'P'>('S')
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
 
@@ -56,7 +64,7 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
       || (patient?.purpose && CONDITIONS.includes(patient.purpose) ? patient.purpose : 'General Wellness')
     const plan = getConditionPlan(condition)
     setSelected(appt)
-    setTab('complaints')
+    setTab('S')
     setSaved(false)
     if (existing) {
       setForm({
@@ -68,6 +76,10 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
         tongue: existing.tongue,
         eyes: existing.eyes,
         skin: existing.skin,
+        pulse_rate: existing.pulse_rate ?? '',
+        bp_systolic: existing.bp_systolic ?? '',
+        bp_diastolic: existing.bp_diastolic ?? '',
+        weight_kg: existing.weight_kg ?? '',
         prakriti: existing.prakriti || patient?.prakriti || 'Vata',
         vikruti: existing.vikruti,
         therapy: existing.therapy || plan.therapy,
@@ -179,7 +191,7 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
                 <p className="font-medium text-[#1B4332]">Clinical suggestion</p>
                 <p className="text-gray-600 mt-0.5 leading-relaxed">{smartInsight}</p>
               </div>
-              {tab === 'plan' && (
+              {tab === 'P' && (
                 <button
                   type="button"
                   onClick={applyConditionPlan}
@@ -190,14 +202,29 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
               )}
             </div>
 
-            {/* Tabs */}
+            {/* Tabs — SOAP format */}
             <div className="flex gap-1 p-0.5 bg-gray-100 rounded-lg mb-4">
-              {(['complaints', 'assessment', 'plan'] as const).map(t => (
-                <button key={t} onClick={() => setTab(t)} className={`flex-1 py-1.5 text-xs font-medium rounded-md capitalize transition-all ${tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>{t}</button>
+              {([
+                { id: 'S', label: 'Subjective', hint: 'Chief complaints & history' },
+                { id: 'O', label: 'Objective', hint: 'Examination & vitals' },
+                { id: 'A', label: 'Assessment', hint: 'Prakriti & diagnosis' },
+                { id: 'P', label: 'Plan', hint: 'Therapy & prescriptions' },
+              ] as const).map(t => (
+                <button
+                  key={t.id}
+                  title={t.hint}
+                  onClick={() => setTab(t.id)}
+                  className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                    tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  {t.id}
+                  <span className="hidden sm:inline font-normal"> — {t.label}</span>
+                </button>
               ))}
             </div>
 
-            {tab === 'complaints' && (
+            {tab === 'S' && (
               <div className="space-y-3">
                 <div>
                   <label className="label">Chief Complaints</label>
@@ -248,8 +275,13 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
               </div>
             )}
 
-            {tab === 'assessment' && (
+            {tab === 'O' && (
               <div className="space-y-3">
+                {/* Structured numeric vitals first */}
+                <VitalsEntry
+                  vitals={{ pulse_rate: form.pulse_rate, bp_systolic: form.bp_systolic, bp_diastolic: form.bp_diastolic, weight_kg: form.weight_kg }}
+                  onChange={v => setForm(f => ({ ...f, ...v }))}
+                />
                 <p className="text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                   Ashtavidha Pariksha — 8-fold Ayurvedic examination to determine root cause
                 </p>
@@ -291,6 +323,13 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
                     />
                   </div>
                 </div>
+              </div>
+            )}
+            {tab === 'A' && (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  Dosha Assessment — determine root imbalance based on Prakriti and current presentation
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="label">Prakriti (Constitution)</label>
@@ -325,7 +364,7 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
               </div>
             )}
 
-            {tab === 'plan' && (
+            {tab === 'P' && (
               <div className="space-y-3">
                 <div>
                   <label className="label">Condition Being Treated</label>
@@ -446,11 +485,19 @@ export default function Consultations(_props: { onNavigate: (p: Page) => void; u
             )}
 
             <div className="flex gap-2 mt-5">
-              {tab !== 'complaints' && (
-                <button className="btn-outline flex-1" onClick={() => setTab(tab === 'plan' ? 'assessment' : 'complaints')}>Back</button>
+              {tab !== 'S' && (
+                <button className="btn-outline flex-1" onClick={() => {
+                  const order = ['S', 'O', 'A', 'P'] as const
+                  const idx = order.indexOf(tab)
+                  setTab(order[Math.max(0, idx - 1)])
+                }}>Back</button>
               )}
-              {tab !== 'plan'
-                ? <button className="btn-primary flex-1" onClick={() => setTab(tab === 'complaints' ? 'assessment' : 'plan')}>Next</button>
+              {tab !== 'P'
+                ? <button className="btn-primary flex-1" onClick={() => {
+                    const order = ['S', 'O', 'A', 'P'] as const
+                    const idx = order.indexOf(tab)
+                    setTab(order[Math.min(3, idx + 1)])
+                  }}>Next</button>
                 : <button className="btn-primary flex-1 flex items-center justify-center gap-2" onClick={handleSave}><Save size={15} /> Save Consultation</button>
               }
             </div>

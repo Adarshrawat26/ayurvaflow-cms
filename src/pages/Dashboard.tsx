@@ -1,4 +1,5 @@
 import { TrendingUp, ArrowRight, Users, CalendarDays, IndianRupee, Leaf, AlertCircle } from 'lucide-react'
+import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { formatDisplayDate, toISODate } from '../lib/dates'
 import { revenueByMonth, referralBreakdown, conditionBreakdown } from '../lib/revenue'
@@ -13,6 +14,8 @@ import {
   selectTodayAppointments,
 } from '../store/selectors'
 import { ConditionChart, ReferralChart, RevenueBarChart } from '../components/charts/DashboardCharts'
+import ClinicalAlerts from '../features/dashboard/alerts/ClinicalAlerts'
+import PrakritiChart from '../features/dashboard/charts/PrakritiChart'
 
 type DoctorLike = { id: string; name: string; specialization: string; patients: number }
 
@@ -42,6 +45,7 @@ export default function Dashboard({ onNavigate, user, doctors: doctorsProp }: { 
   const activeT = useAppSelector(selectActiveTreatments)
   const outstanding = useAppSelector(selectOutstandingInvoices)
   const billing = useAppSelector(selectBillingSummary)
+  const [dismissed, setDismissed] = useState<string[]>([])
 
   const revenueData = revenueByMonth(invoices)
   const doctorsList: DoctorLike[] = doctorsProp ?? []
@@ -81,6 +85,13 @@ export default function Dashboard({ onNavigate, user, doctors: doctorsProp }: { 
           <span>{outstanding.length} invoices pending · {fmtFull(outstanding.reduce((a, i) => a + (i.total - i.paid), 0))} outstanding</span>
         </div>
       </motion.div>
+
+      {/* Clinical Alerts — computed from Redux state */}
+      <ClinicalAlerts
+        onNavigate={onNavigate}
+        onDismiss={id => setDismissed(d => [...d, id])}
+        dismissed={dismissed}
+      />
 
       {/* KPI cards — staggered */}
       <motion.div
@@ -165,6 +176,13 @@ export default function Dashboard({ onNavigate, user, doctors: doctorsProp }: { 
           <h2 className="text-base font-semibold text-gray-900 mb-1">Referrals</h2>
           <p className="text-xs text-gray-400 mb-4">How patients find the centre</p>
           <ReferralChart items={referrals} />
+        </motion.div>
+
+        {/* Prakriti distribution */}
+        <motion.div variants={fadeUp} className="card p-5 min-w-0 overflow-hidden">
+          <h2 className="text-base font-semibold text-gray-900 mb-1">Patient Constitution</h2>
+          <p className="text-xs text-gray-400 mb-4">Prakriti breakdown · all patients</p>
+          <PrakritiChart />
         </motion.div>
       </motion.div>
 

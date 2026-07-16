@@ -7,23 +7,70 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Runtime data / uploads / generated output
 node_modules
 dist
+dist-ssr
+dist-bundle/
+bundle.html
+coverage/
+storybook-static/
+uploads/
+reports/
+exports/
+backups/
+
+# Vite / Parcel / Build tools
+.parcel-cache/
+.cache/
+.temp/
+*.local
+
+# Database files
 /data/
 prisma/data/
 *.db
-backups/
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# Environment secrets
 .env
-dist-ssr
-*.local
+.env.local
+.env.development
+.env.production
+.env.staging
+*.pem
+*.key
+*.cert
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.AppleDouble
+.LSOverride
+Desktop.ini
+$RECYCLE.BIN/
+._*
+
+# Testing
+junit.xml
+test-results/
+playwright-report/

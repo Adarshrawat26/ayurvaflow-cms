@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { selectClinicSettings, selectInvoices, selectPatients } from '../store/selectors'
 import { createInvoiceApi, recordInvoicePaymentApi } from '../store/thunks/apiThunks'
 import { printInvoice, sendInvoiceToPatient } from '../lib/invoicePrint'
+import AgingBanner, { filterByAgingBucket, type AgingBucket } from '../features/billing/components/AgingBanner'
 
 const S: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
@@ -105,6 +106,7 @@ export default function Billing(_props: { onNavigate: (p: Page) => void; user?: 
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null)
   const [form, setForm] = useState({ patient: '', desc: '', qty: '1', rate: '' })
+  const [agingFilter, setAgingFilter] = useState<AgingBucket | null>(null)
 
   const subtotal = Number(form.rate) * Number(form.qty)
   const tax = Math.round(subtotal * 0.18)
@@ -153,11 +155,16 @@ export default function Billing(_props: { onNavigate: (p: Page) => void; user?: 
     )
   }
 
+  const filteredInvoices = filterByAgingBucket(agingFilter ? invoices.filter(i => i.status !== 'paid') : invoices, agingFilter)
+  const displayInvoices = agingFilter ? filteredInvoices : invoices
   const totalRevenue = invoices.reduce((a, i) => a + i.paid, 0)
   const totalOutstanding = invoices.reduce((a, i) => a + (i.total - i.paid), 0)
 
   return (
     <div className="p-4 lg:p-6 w-full">
+      {/* AR Aging Banner */}
+      <AgingBanner invoices={invoices} activeFilter={agingFilter} onFilter={setAgingFilter} />
+
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
           { label: 'Total Revenue', value: `₹${(totalRevenue / 1000).toFixed(0)}K` },
@@ -178,7 +185,7 @@ export default function Billing(_props: { onNavigate: (p: Page) => void; user?: 
       </div>
 
       <div className="lg:hidden space-y-2">
-        {invoices.map(inv => (
+        {displayInvoices.map(inv => (
           <button key={inv.id} onClick={() => setSelected(inv)} className="card w-full p-4 text-left flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-gray-900">{inv.patient}</div>
@@ -202,7 +209,7 @@ export default function Billing(_props: { onNavigate: (p: Page) => void; user?: 
             </tr>
           </thead>
           <tbody>
-            {invoices.map(inv => (
+            {displayInvoices.map(inv => (
               <tr key={inv.id} onClick={() => setSelected(inv)} className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors">
                 <td className="px-4 py-3 font-medium text-gray-900">{inv.id}</td>
                 <td className="px-4 py-3 text-gray-700">{inv.patient}</td>
