@@ -14,6 +14,7 @@ import RegistrationGuideModal from './RegistrationGuideModal'
 import { ConsentStep } from './registration/ConsentBlock'
 import { printRegistration } from '@/lib/registrationPrint'
 import { CheckRow, Field } from '@/lib/ui'
+import { useDuplicateCheck } from '@/features/patients/hooks/useDuplicateCheck'
 
 const STEPS = ['Registration', 'Consent (1)', 'Consent (2)', 'Review & Sign']
 
@@ -46,6 +47,14 @@ export default function OneTimeRegistrationForm({
   const [submitting, setSubmitting] = useState(false)
   const [saved, setSaved] = useState<PatientRegistrationRecord | null>(null)
   const [showGuide, setShowGuide] = useState(false)
+
+  // Duplicate detection — checks phone + composed name against existing patients
+  const composedName = [form.firstName, form.lastName].filter(Boolean).join(' ')
+  const { duplicates, hasPhoneMatch, hasNameMatch } = useDuplicateCheck({
+    phone: form.mobile1,
+    name: composedName,
+    enabled: step === 0,
+  })
 
   const patch = (p: Partial<RegistrationForm>) => setForm(f => ({ ...f, ...p }))
   const patchKin = (p: Partial<RegistrationForm['kin']>) =>
@@ -203,6 +212,29 @@ export default function OneTimeRegistrationForm({
                 <p className="text-[10px] text-gray-500 mt-2 leading-relaxed">{centreLine}</p>
                 <p className="text-[10px] italic text-gray-600 mt-2 p-2 border border-gray-200 rounded-lg bg-white">{NABH_SEAL_TEXT}</p>
               </div>
+
+              {/* Duplicate patient warning */}
+              {duplicates.length > 0 && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs">
+                  <p className="font-semibold text-amber-900 mb-1">
+                    ⚠ Possible duplicate patient{duplicates.length > 1 ? 's' : ''} detected
+                  </p>
+                  <p className="text-amber-700 mb-2">
+                    {hasPhoneMatch && 'An existing patient has the same mobile number.'}
+                    {hasNameMatch && !hasPhoneMatch && 'A similar name already exists in the system.'}
+                    {' '}Please verify before registering.
+                  </p>
+                  <ul className="space-y-1">
+                    {duplicates.slice(0, 3).map(p => (
+                      <li key={p.id} className="flex gap-2 text-amber-800">
+                        <span className="font-medium">{p.name}</span>
+                        <span className="text-amber-600">{p.phone}</span>
+                        <span className="text-amber-600">{p.id}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="card p-4 grid sm:grid-cols-2 gap-3">
                 <div>

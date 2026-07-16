@@ -14,7 +14,6 @@ import { AlertTriangle, Clock, IndianRupee, Leaf, X, ChevronRight } from 'lucide
 import { useAppSelector } from '../../../store/hooks'
 import {
   selectConsultations,
-  selectPatients,
   selectActiveTreatments,
   selectInvoices,
 } from '../../../store/selectors'
@@ -70,7 +69,6 @@ const FOLLOWUP_WINDOWS: Record<string, number> = {
 
 export default function ClinicalAlerts({ onNavigate, onDismiss, dismissed = [] }: Props) {
   const consultations = useAppSelector(selectConsultations)
-  const patients = useAppSelector(selectPatients)
   const treatments = useAppSelector(selectActiveTreatments)
   const invoices = useAppSelector(selectInvoices)
 
@@ -152,7 +150,7 @@ export default function ClinicalAlerts({ onNavigate, onDismiss, dismissed = [] }
     }
 
     return result.filter(a => !dismissed.includes(a.id))
-  }, [consultations, patients, treatments, invoices, dismissed])
+  }, [consultations, treatments, invoices, dismissed])
 
   if (alerts.length === 0) return null
 

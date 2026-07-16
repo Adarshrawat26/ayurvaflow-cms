@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
   makeSelectPatientHistory,
   selectClinicSettings,
+  selectConsultations,
   selectPatientSearchResults,
   selectRegistrationByPatientId,
   selectUser,
@@ -22,6 +23,8 @@ import PatientDocuments from '../components/PatientDocuments'
 import { printRegistration } from '../lib/registrationPrint'
 import type { RegistrationForm } from '../types/registration'
 import { fullNameFromForm, hearAboutLabel, purposeLabel } from '../types/registration'
+import PatientTimeline from '../features/patients/components/PatientTimeline'
+import MedAllergyStrip from '../features/patients/components/MedAllergyStrip'
 
 export default function Patients(_props: { onNavigate: (p: Page) => void; user?: unknown }) {
   const dispatch = useAppDispatch()
@@ -44,6 +47,14 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
   const history = useAppSelector(state =>
     selected ? makeSelectPatientHistory(selected.id)(state) : null
   )
+
+  // Latest consultation medicines + allergies for the MedAllergyStrip
+  const allConsultations = useAppSelector(selectConsultations)
+  const latestConsultation = selected
+    ? [...allConsultations]
+        .filter(c => c.patientId === selected.id)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+    : undefined
 
   const filtered = useAppSelector(state => selectPatientSearchResults(search)(state))
 
@@ -136,6 +147,11 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
                 {registration ? ` · ${registration.regNumber}` : ''}
                 {' · '}{selected.age}y · {selected.gender === 'M' ? 'Male' : 'Female'}
               </p>
+              {/* Meds & Allergy Strip — pulled from latest consultation */}
+              <MedAllergyStrip
+                medicines={latestConsultation?.medicines}
+                allergies={latestConsultation?.allergies}
+              />
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -259,11 +275,17 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
           )}
 
           {tab === 'history' && (
-            <div className="mt-4 space-y-4 text-sm">
-              {!history || (!history.appointments.length && !history.consultations.length && !history.treatments.length && !history.invoices.length) ? (
-                <p className="text-gray-500 text-center py-8">No visit history yet</p>
+            <div className="mt-4">
+              {!history || history.consultations.length === 0 ? (
+                <p className="text-gray-500 text-center py-8 text-sm">No consultation history yet</p>
               ) : (
-                <>
+                <PatientTimeline
+                  consultations={history.consultations}
+                  patientName={selected.name}
+                />
+              )}
+              {history && (history.appointments.length > 0 || history.treatments.length > 0 || history.invoices.length > 0) && (
+                <div className="mt-4 space-y-4 text-sm">
                   {history.appointments.length > 0 && (
                     <div>
                       <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Appointments</h4>
@@ -275,19 +297,6 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
                               <div className="text-xs text-gray-500">{a.date} · {a.time} · {a.doctor}</div>
                             </div>
                             <span className="text-xs text-gray-500 capitalize shrink-0">{a.status.replace('_', ' ')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {history.consultations.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Consultations</h4>
-                      <div className="space-y-2">
-                        {history.consultations.map(c => (
-                          <div key={c.id} className="p-2.5 rounded-lg bg-gray-50">
-                            <div className="font-medium text-gray-900">{c.condition || 'Consultation'}</div>
-                            <div className="text-xs text-gray-500">{new Date(c.createdAt).toLocaleDateString('en-IN')} · {c.therapy}</div>
                           </div>
                         ))}
                       </div>
@@ -328,7 +337,7 @@ export default function Patients(_props: { onNavigate: (p: Page) => void; user?:
                       </div>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}

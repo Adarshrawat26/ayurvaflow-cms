@@ -22,6 +22,7 @@ import invoicesReducer from './slices/invoicesSlice'
 import consultationsReducer from './slices/consultationsSlice'
 import settingsReducer from './slices/settingsSlice'
 import registrationsReducer from './slices/registrationsSlice'
+import { auditMiddleware } from './middleware/auditMiddleware'
 
 function isValidPersistedState(state: unknown): boolean {
   if (!state || typeof state !== 'object') return false
@@ -73,7 +74,6 @@ const rootReducer = combineReducers({
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
-import { auditMiddleware } from './middleware/auditMiddleware'
 
 export const store = configureStore({
   reducer: persistedReducer,
@@ -84,7 +84,6 @@ export const store = configureStore({
       },
     }).concat(auditMiddleware),
 })
-
 
 export const persistor = persistStore(store)
 
