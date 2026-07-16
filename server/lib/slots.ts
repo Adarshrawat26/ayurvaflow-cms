@@ -40,6 +40,7 @@ export function filterAvailableSlots(
   return allSlots.filter(time => {
     if (dateISO === today && timeToMin(time) <= nowMin) return false
     if (dateISO < today) return false
-    return !hasSameDayConflict(booked, time, duration)
+    const bookedWithId = booked.map(b => ({ id: '', ...b }))
+    return !hasSameDayConflict(bookedWithId, time, duration)
   })
 }

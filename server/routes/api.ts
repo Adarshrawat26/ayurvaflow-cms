@@ -47,6 +47,11 @@ function handleRouteError(res: import('express').Response, err: unknown, label: 
   res.status(500).json({ error: 'Internal server error' })
 }
 
+/** Safely extract a string from Express route params (Express 5 types params as string | string[]) */
+function param(value: string | string[]): string {
+  return Array.isArray(value) ? (value[0] ?? '') : value
+}
+
 router.get('/setup-status', async (_req, res) => {
   try {
     const [users, patientAccounts] = await Promise.all([
@@ -428,7 +433,7 @@ router.post('/patients/register', requireAuth, requireStaff, async (req, res) =>
       tenantId,
       patientId: patient.id,
       regNumber,
-      formData: form,
+      formData: form as import('@prisma/client').Prisma.InputJsonValue,
       patientSignature: String(form.patientSignature ?? ''),
       signerType: String(form.signerType ?? 'patient'),
       kairaliRepSignature: String(form.kairaliRepSignature ?? ''),
@@ -446,7 +451,7 @@ router.post('/patients/register', requireAuth, requireStaff, async (req, res) =>
 router.get('/patients/:id/registration', requireAuth, requireStaff, async (req, res) => {
   const tenantId = req.auth!.tenantId
   const registration = await prisma.patientRegistration.findFirst({
-    where: { patientId: req.params.id, tenantId },
+    where: { patientId: param(req.params.id), tenantId },
   })
   if (!registration) {
     res.status(404).json({ error: 'Registration not found' })
@@ -470,7 +475,7 @@ router.post('/patients/:id/registration', requireAuth, requireStaff, async (req,
   }
 
   const patient = await prisma.patient.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
   })
   if (!patient) {
     res.status(404).json({ error: 'Patient not found' })
@@ -491,7 +496,7 @@ router.post('/patients/:id/registration', requireAuth, requireStaff, async (req,
       tenantId,
       patientId: patient.id,
       regNumber,
-      formData: form,
+      formData: form as import('@prisma/client').Prisma.InputJsonValue,
       patientSignature: String(form.patientSignature ?? ''),
       signerType: String(form.signerType ?? 'patient'),
       kairaliRepSignature: String(form.kairaliRepSignature ?? ''),
@@ -533,7 +538,7 @@ router.patch('/patients/:id/registration', requireAuth, requireStaff, async (req
   }
 
   const existing = await prisma.patientRegistration.findFirst({
-    where: { patientId: req.params.id, tenantId },
+    where: { patientId: param(req.params.id), tenantId },
   })
   if (!existing) {
     res.status(404).json({ error: 'Registration not found' })
@@ -549,7 +554,7 @@ router.patch('/patients/:id/registration', requireAuth, requireStaff, async (req
 
   const updated = await prisma.patientRegistration.update({
     where: { id: existing.id },
-    data: { formData: nextForm },
+    data: { formData: nextForm as import('@prisma/client').Prisma.InputJsonValue },
   })
 
   res.json(mapRegistration(updated))
@@ -560,7 +565,7 @@ router.patch('/patients/:id', requireAuth, requireStaff, async (req, res) => {
   const body = req.body
 
   const existing = await prisma.patient.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
   })
   if (!existing) {
     res.status(404).json({ error: 'Patient not found' })
@@ -593,7 +598,7 @@ router.patch('/patients/:id', requireAuth, requireStaff, async (req, res) => {
 router.get('/patients/:id/documents', requireAuth, requireStaff, async (req, res) => {
   const tenantId = req.auth!.tenantId
   const patient = await prisma.patient.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
   })
   if (!patient) {
     res.status(404).json({ error: 'Patient not found' })
@@ -609,14 +614,14 @@ router.get('/patients/:id/documents', requireAuth, requireStaff, async (req, res
 router.get('/patients/:id/documents/:docId', requireAuth, requireStaff, async (req, res) => {
   const tenantId = req.auth!.tenantId
   const patient = await prisma.patient.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
   })
   if (!patient) {
     res.status(404).json({ error: 'Patient not found' })
     return
   }
   const doc = await prisma.patientDocument.findFirst({
-    where: { id: req.params.docId, patientId: patient.id },
+    where: { id: param(req.params.docId), patientId: patient.id },
   })
   if (!doc) {
     res.status(404).json({ error: 'Document not found' })
@@ -628,7 +633,7 @@ router.get('/patients/:id/documents/:docId', requireAuth, requireStaff, async (r
 router.post('/patients/:id/documents', requireAuth, requireStaff, async (req, res) => {
   const tenantId = req.auth!.tenantId
   const patient = await prisma.patient.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
   })
   if (!patient) {
     res.status(404).json({ error: 'Patient not found' })
@@ -677,14 +682,14 @@ router.post('/patients/:id/documents', requireAuth, requireStaff, async (req, re
 router.delete('/patients/:id/documents/:docId', requireAuth, requireStaff, async (req, res) => {
   const tenantId = req.auth!.tenantId
   const patient = await prisma.patient.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
   })
   if (!patient) {
     res.status(404).json({ error: 'Patient not found' })
     return
   }
   const doc = await prisma.patientDocument.findFirst({
-    where: { id: req.params.docId, patientId: patient.id },
+    where: { id: param(req.params.docId), patientId: patient.id },
   })
   if (!doc) {
     res.status(404).json({ error: 'Document not found' })
@@ -753,7 +758,7 @@ router.post('/appointments', requireAuth, requireStaff, async (req, res) => {
 
 router.patch('/appointments/:id', requireAuth, requireStaff, async (req, res) => {
   const appt = await prisma.appointment.findFirst({
-    where: { id: req.params.id, tenantId: req.auth!.tenantId },
+    where: { id: param(req.params.id), tenantId: req.auth!.tenantId },
     include: { patient: true },
   })
   if (!appt) {
@@ -864,7 +869,7 @@ router.patch('/invoices/:id', requireAuth, requireStaff, async (req, res) => {
   const body = req.body
 
   const existing = await prisma.invoice.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
     include: { patient: true },
   })
   if (!existing) {
@@ -970,7 +975,7 @@ router.patch('/treatments/:id', requireAuth, requireStaff, async (req, res) => {
   const body = req.body
 
   const existing = await prisma.treatmentPlan.findFirst({
-    where: { id: req.params.id, tenantId },
+    where: { id: param(req.params.id), tenantId },
     include: { patient: true },
   })
   if (!existing) {
@@ -1123,8 +1128,12 @@ router.post('/staff', requireAuth, requireStaff, async (req, res) => {
     res.status(400).json({ error: 'Password is required when creating staff in production' })
     return
   }
+  if (!body.name || !body.email) {
+    res.status(400).json({ error: 'name and email are required' })
+    return
+  }
   const names = (body.name as string).split(' ')
-  const firstName = names[0]
+  const firstName = names[0] ?? ''
   const lastName = names.slice(1).join(' ') || ''
   const hash = await bcrypt.hash(body.password ?? '1234', 10)
 
@@ -1132,7 +1141,7 @@ router.post('/staff', requireAuth, requireStaff, async (req, res) => {
     data: {
       id: `S${Date.now().toString().slice(-6)}`,
       tenantId: req.auth!.tenantId,
-      role: fromRole(body.role),
+      role: fromRole(body.role ?? 'receptionist'),
       email: body.email.toLowerCase(),
       phone: body.phone,
       passwordHash: hash,
@@ -1155,7 +1164,7 @@ router.patch('/staff/:id', requireAuth, requireStaff, async (req, res) => {
   }
 
   const user = await prisma.user.findFirst({
-    where: { id: req.params.id, tenantId: req.auth!.tenantId },
+    where: { id: param(req.params.id), tenantId: req.auth!.tenantId },
   })
   if (!user) {
     res.status(404).json({ error: 'Staff member not found' })

@@ -6,9 +6,8 @@ import { getJwtSecret } from '../lib/env.js'
 export type { AuthPayload }
 
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, getJwtSecret(), {
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
-  })
+  const expiresIn = (process.env.JWT_EXPIRES_IN ?? '7d') as `${number}${'s' | 'm' | 'h' | 'd' | 'w' | 'y'}`
+  return jwt.sign(payload, getJwtSecret(), { expiresIn })
 }
 
 function normalizeAuth(payload: AuthPayload): AuthPayload {

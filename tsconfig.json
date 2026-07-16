@@ -1,19 +1,11 @@
 {
+  // Root project references tsconfig — orchestrates the build via `tsc -b`.
+  // MUST have "files": [] and NO compilerOptions here — they are ignored by tsc -b.
+  // Path aliases live in tsconfig.app.json where they are actually resolved.
   "files": [],
   "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
-    }
-  ],
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
-  }
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.server.json" }
+  ]
 }

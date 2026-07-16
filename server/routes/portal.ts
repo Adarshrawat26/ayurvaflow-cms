@@ -1,6 +1,12 @@
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
+
+/** Safely extract a string from Express route params (Express 5 types params as string | string[]) */
+function param(value: string | string[]): string {
+  return Array.isArray(value) ? (value[0] ?? '') : value
+}
+
 import {
   fmtDate,
   fromApptStatus,
@@ -304,7 +310,7 @@ router.post('/registration', requireAuth, requirePatient, async (req, res) => {
         tenantId,
         patientId: patient.id,
         regNumber,
-        formData: form,
+        formData: form as import('@prisma/client').Prisma.InputJsonValue,
         patientSignature: String(form.patientSignature ?? ''),
         signerType: String(form.signerType ?? 'patient'),
         kairaliRepSignature: String(form.kairaliRepSignature ?? ''),
@@ -648,7 +654,7 @@ router.get('/documents', requireAuth, requirePatient, async (req, res) => {
 router.get('/documents/:id', requireAuth, requirePatient, async (req, res) => {
   const patientId = req.auth!.patientId!
   const doc = await prisma.patientDocument.findFirst({
-    where: { id: req.params.id, patientId },
+    where: { id: param(req.params.id), patientId },
   })
   if (!doc) {
     res.status(404).json({ error: 'Document not found' })
@@ -702,7 +708,7 @@ router.post('/documents', requireAuth, requirePatient, async (req, res) => {
 router.delete('/documents/:id', requireAuth, requirePatient, async (req, res) => {
   const patientId = req.auth!.patientId!
   const doc = await prisma.patientDocument.findFirst({
-    where: { id: req.params.id, patientId },
+    where: { id: param(req.params.id), patientId },
   })
   if (!doc) {
     res.status(404).json({ error: 'Document not found' })

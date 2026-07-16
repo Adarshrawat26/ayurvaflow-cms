@@ -1,19 +1,17 @@
 /**
- * Server-side Audit Log Service
- * Phase 2 implementation — Prisma middleware → AuditLog table
+ * Server-side Audit Log Service — Phase 2 stub
+ * Pattern: OpenEMR log.inc / OHC Care Django signals
  *
- * This file documents the pattern for wiring persistent audit logging.
- * Currently the frontend uses an in-session audit trail (auditMiddleware.ts).
- * When the AuditLog Prisma model is added, wire this middleware into prisma client.
+ * Prisma v5+ removed $use() middleware in favour of $extends().
+ * This stub documents both the legacy pattern (commented out) and the
+ * correct Prisma v5 extension approach for when AuditLog is added to schema.
  *
  * Usage (in server/lib/prisma.ts):
  *   import { withAuditLog } from '../modules/shared/auditService'
- *   const prisma = withAuditLog(new PrismaClient())
- *
- * Pattern inspired by: OpenEMR log.inc, OHC Care Django signals
+ *   export const prisma = withAuditLog(new PrismaClient())
  */
 
-import type { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 
 export interface AuditRecord {
   model: string
@@ -25,32 +23,37 @@ export interface AuditRecord {
 }
 
 /**
- * Wraps a Prisma client with audit logging middleware.
- * Uncomment and use once the AuditLog model exists in schema.prisma.
+ * Wraps a Prisma client with console-based audit logging via $extends.
+ * Phase 2: replace console.info with prisma.auditLog.create once model exists.
  */
-export function withAuditLog(prisma: PrismaClient): PrismaClient {
-  prisma.$use(async (params, next) => {
-    const result = await next(params)
+export function withAuditLog(client: PrismaClient): PrismaClient {
+  return client.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          const result = await query(args)
 
-    // Only log mutating operations
-    if (!['create', 'update', 'delete', 'upsert'].includes(params.action)) {
-      return result
-    }
+          const mutating = ['create', 'update', 'delete', 'upsert', 'createMany', 'updateMany', 'deleteMany']
+          if (!mutating.includes(operation)) return result
 
-    const record: AuditRecord = {
-      model: params.model ?? 'Unknown',
-      action: params.action === 'upsert' ? 'update' : params.action as AuditRecord['action'],
-      recordId: (result as { id?: string })?.id ?? 'unknown',
-      timestamp: new Date(),
-      changes: params.args?.data as Record<string, unknown>,
-    }
+          const record: AuditRecord = {
+            model: model ?? 'Unknown',
+            action: operation.startsWith('delete')
+              ? 'delete'
+              : operation.startsWith('create')
+                ? 'create'
+                : 'update',
+            recordId: (result as { id?: string } | null)?.id ?? 'unknown',
+            timestamp: new Date(),
+            changes: (args as { data?: Record<string, unknown> }).data,
+          }
 
-    // Phase 2: persist to DB
-    // await prisma.auditLog.create({ data: record })
-    console.info('[AuditLog]', record.model, record.action, record.recordId)
+          // Phase 2: await client.auditLog.create({ data: record })
+          console.info('[AuditLog]', record.model, record.action, record.recordId)
 
-    return result
-  })
-
-  return prisma
+          return result
+        },
+      },
+    },
+  }) as unknown as PrismaClient
 }
